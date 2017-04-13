@@ -8,7 +8,7 @@ grammar_cjkRuby: true
 
 - GAP Generic Access Profile                                     通用访问配置文件
 - GATT Generic Attribute Profile                                 通用属性配置文件
-M- ATT Attribute Protocol
+- ATT Attribute Protocol
 - L2CAP Logical Link Control and Adaptation Protocol
 - HCI Host Controller Interface
 - LL Link Layer
@@ -105,8 +105,8 @@ M- ATT Attribute Protocol
 
 ```c
 typedef struct ServiceStruct {
-	uint16_t conn_handle;								// 连接句柄
-	uint16_t service_handle;						   // 服务句柄
+	uint16_t conn_handle;			// 连接句柄
+	uint16_t service_handle;		// 服务句柄
 	ble_gatts_char_handles_t char_handle;	// 服务的特征句柄
 } Service;
 ```
