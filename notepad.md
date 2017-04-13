@@ -8,10 +8,11 @@ grammar_cjkRuby: true
 
 - GAP Generic Access Profile                                     通用访问配置文件
 - GATT Generic Attribute Profile                                 通用属性配置文件
-- Attribute Protocol
+M- ATT Attribute Protocol
 - L2CAP Logical Link Control and Adaptation Protocol
 - HCI Host Controller Interface
-- Security Manager
+- LL Link Layer
+- SMP Security Manager Protocol
 - GFSK Gaussian Frequency Shift Keying
 - S110 从设备使用的协议栈
 - S120 主设备使用的协议栈
@@ -19,6 +20,58 @@ grammar_cjkRuby: true
 - S212 (ANT only)
 - S332 (concurrent ANT/BLE) 
 - 
+
+## Physical Layer
+- Band ISM @2.4GHz
+- 40 channel of 2MHz
+- freq = 2402 + i * 2MHz, i = 0...39
+- Advertising physical channel(i = 0, 12, 39)
+- Data physical channel(the other 37 RF channels)
+
+|i|channel|freq/MHz|type|
+|---|---|---|---|
+|0|37|2402|Adv|
+|1|0|2404|Data|
+|2|1|2406|Data|
+|3|2|2408|Data|
+|4|3|2410|Data|
+|5|4|2412|Data|
+|6|5|2414|Data|
+|7|6|2416|Data|
+|8|7|2418|Data|
+|9|8|2420|Data|
+|10|9|2422|Data|
+|11|10|2424|Data|
+|12|38|2426|Adv|
+|13|11|2428|Data|
+|14|12|2430|Data|
+|15|13|2432|Data|
+|16|14|2434|Data|
+|17|15|2436|Data|
+|18|16|2438|Data|
+|19|17|2440|Data|
+|20|18|2442|Data|
+|21|19|2444|Data|
+|22|20|2446|Data|
+|23|21|2448|Data|
+|24|22|2450|Data|
+|25|23|2452|Data|
+|26|24|2454|Data|
+|27|25|2456|Data|
+|28|26|2458|Data|
+|29|27|2460|Data|
+|30|28|2462|Data|
+|31|29|2464|Data|
+|32|30|2466|Data|
+|33|31|2468|Data|
+|34|32|2470|Data|
+|35|33|2472|Data|
+|36|34|2474|Data|
+|37|35|2476|Data|
+|38|36|2478|Data|
+|39|39|2480|Adv|
+
+
 
 ## BLE 设备的六种状态
 - Standby 待机状态
