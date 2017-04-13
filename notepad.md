@@ -20,6 +20,18 @@ grammar_cjkRuby: true
 - S332 (concurrent ANT/BLE) 
 - 
 
+## BLE 设备的六种状态
+- Standby 待机状态
+- Advertiser 广播状态
+- Scanner 扫描状态
+- Initiator 发起连接状态
+- Master 主设备
+- Slave 从设备
+
+## BLE 连接状态流程
+- Standby -> Advertiser -> Slave
+- Standby -> Scanner -> Initiator -> Master
+
 ## BLE的主要架构解析
 
 ### main 函数
