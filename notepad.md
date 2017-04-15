@@ -124,3 +124,19 @@ typedef struct ServiceStruct {
 ### BLE发送数据
 
 - sd_ble_gatts_hvx(); 发送数据的函数
+
+
+### UUID
+The full 128-bit value of a 16-bit or 32-bit UUID may be computed by a simple arithmetic operation.
+
+128_bit_value = 16_bit_value * 2^96 + Bluetooth_Base_UUID
+128_bit_value = 32_bit_value * 2^96 + Bluetooth_Base_UUID
+A 16-bit UUID may be converted to 32-bit UUID format by zero-extending the 16-bit value to 32-bits. An equivalent method is to add the 16-bit UUID value to a zero-valued 32-bit UUID.
+Note that, in another section, there's a handy mnemonic:
+
+Or, to put it more simply, the 16-bit Attribute UUID replaces the x’s in the follow- ing:
+
+0000xxxx-0000-1000-8000-00805F9B34FB
+In addition, the 32-bit Attribute UUID replaces the x's in the following:
+
+xxxxxxxx-0000-1000-8000-00805F9B34FB
