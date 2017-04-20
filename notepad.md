@@ -19,7 +19,7 @@ grammar_cjkRuby: true
 - S130 主、从设备都可使用的协议栈
 - S212 (ANT only)
 - S332 (concurrent ANT/BLE) 
-- 
+- CCCD 客户端特性配置描述符
 
 ## Physical Layer
 - Band ISM @2.4GHz
@@ -319,6 +319,13 @@ uint32_t test_send_more_data(void)
 	return err_code;
 }
 ```
+
+### 获取 RSSI
+- 使用两个函数：uint32_t  sd_ble_gap_rssi_start (uint16_t conn_handle, uint8_t threshold_dbm, uint8_t skip_count) 和 uint32_t 	sd_ble_gap_rssi_get (uint16_t conn_handle, int8_t \*p_rssi)
+- sd_ble_gap_rssi_start 有两种用法：
+- 把 threshold_dbm 设置为 BLE_GAP_RSSI_THRESHOLD_INVALID，skip_count 为 0，那么每次直接调用 sd_ble_gap_rssi_get 获取最近一次连接事件中的 RSSI 值。
+- 把 threshold_dbm 设置为一个有效值，当 RSSI 大于或等于上一次 RSSU 值时就会产生一个 BLE_GAP_EVT_RSSI_CHANGED 事件。skip_count 为忽略的次数。
+
 
 ### 帧格式
 
