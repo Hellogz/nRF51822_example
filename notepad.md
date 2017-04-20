@@ -76,10 +76,10 @@ grammar_cjkRuby: true
 ## BLE 设备的六种状态
 - Standby 待机状态
 - Advertiser 广播状态
-- Scanner 扫描状态
+- Scanner 扫描状态（主动扫描、被动扫描）
 - Initiator 发起连接状态
-- Master 主设备
-- Slave 从设备
+- Connection 连接状态（又分为Master 主设备、Slave 从设备）
+
 
 ## BLE 连接状态流程
 - Standby -> Advertiser -> Slave
@@ -140,3 +140,197 @@ Or, to put it more simply, the 16-bit Attribute UUID replaces the x’s in the f
 In addition, the 32-bit Attribute UUID replaces the x's in the following:
 
 xxxxxxxx-0000-1000-8000-00805F9B34FB
+
+### 消耗时间
+
+- 最长数据包：广播 376us、数据 328us
+- 包间隔时间 150us
+- BLE 数据传输速率为: 1000000bit/s
+
+
+### 连接时产生配对请求
+- 利用API：sd_ble_gap_authenticate（）；
+```c
+static void on_ble_evt(ble_evt_t * p_ble_evt)
+{
+    uint32_t 						err_code;
+	...
+    switch (p_ble_evt->header.evt_id)
+    {
+        case BLE_GAP_EVT_CONNECTED:
+            err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
+            APP_ERROR_CHECK(err_code);
+            m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
+
+			// create authenticate
+			ble_gap_sec_params_t		params;
+		
+			params.bond = 0;	// no bond
+			params.mitm = 1;
+			sd_ble_gap_authenticate(m_conn_handle, &params);
+		
+            break; // BLE_GAP_EVT_CONNECTED
+...
+```
+
+### 使用静态密钥
+
+```c
+void add_static_passkey(void)
+{
+	uint32_t err_code;
+	uint8_t passcode[] = "123456";
+	
+	ble_opt_t	static_option;
+	
+	static_option.gap_opt.passkey.p_passkey = passcode;
+	err_code = sd_ble_opt_set(BLE_GAP_OPT_PASSKEY, &static_option);
+	APP_ERROR_CHECK(err_code);
+}
+```
+
+### 配对
+
+- ble_gap_sec_keyset_t 本地和对等密钥的安全密钥集
+- ble_gap_enc_key_t 加密密钥
+- ble_gap_sec_params_t GAP 安全参数
+- 
+
+### 让bootload支持正常启动app
+- 在 bootloader_settings.c 中把如下代码更改即可。
+```c
+// 把下面代码更改：
+uint8_t  m_boot_settings[CODE_PAGE_SIZE]    __attribute__((at(BOOTLOADER_SETTINGS_ADDRESS))) __attribute__((used));   
+// 更改为：
+uint8_t  m_boot_settings[CODE_PAGE_SIZE]    __attribute__((at(BOOTLOADER_SETTINGS_ADDRESS))) __attribute__((used)) = {BANK_VALID_APP};
+```
+
+### 高效率发送大数据
+- 原理：通过在每次数据传输完成后继续传输后面剩余的数据和减少每次传输之间的间隔时间来提高发送效率，这样使得一个连接事件可以发送多个包（最多6个）。
+```c
+typedef struct blk_send_msg_s
+{
+	uint32_t start;				// send start offset
+	uint32_t max_len;		// the total length of the data to be sent
+	uint8_t	*pdata;
+} blk_send_msg_t;
+
+blk_send_msg_t	m_send_msg;
+
+uint32_t ble_send(uint8_t *data, uint16_t len)
+{
+	ble_gatts_hvx_params_t hvx_params;
+
+	memset(&hvx_params, 0, sizeof(hvx_params));
+
+    hvx_params.handle = m_test.test_handle.value_handle;
+    hvx_params.p_data = data;
+    hvx_params.p_len  = &len;
+    hvx_params.type   = BLE_GATT_HVX_NOTIFICATION;
+
+    return sd_ble_gatts_hvx(m_test.conn_handle, &hvx_params);
+}
+
+uint32_t send_data(void)
+{
+	uint8_t temp_len;
+	uint32_t dif_value;
+	uint32_t err_code = NRF_SUCCESS;
+	uint8_t *pdata = m_send_msg.pdata;
+	uint32_t start = m_send_msg.start;
+	uint32_t max_len = m_send_msg.max_len;
+	
+	do {
+		dif_value = max_len - start;
+		temp_len = dif_value > 20? 20:dif_value;
+		err_code = ble_send(pdata+start, temp_len);
+		if(NRF_SUCCESS == err_code)
+		{
+			start += temp_len;
+		}
+	} while((NRF_SUCCESS == err_code) && (max_len - start) > 0);
+	m_send_msg.start = start;
+	
+	return err_code;
+}
+
+uint32_t ble_send_data(uint8_t *pdata, uint32_t len)
+{
+	if(NULL == pdata || len <= 0)
+	{
+		return NRF_ERROR_INVALID_PARAM;
+	}
+	else
+	{
+		uint32_t	err_code = NRF_SUCCESS;
+		m_send_msg.start = 0;
+		m_send_msg.max_len = len;
+		m_send_msg.pdata = pdata;
+		
+		err_code = send_data();
+		
+		return err_code;
+	}
+}
+
+uint32_t ble_send_more_data(void)
+{
+	uint32_t err_code;
+	uint32_t dif_value;
+	
+	dif_value = m_send_msg.max_len - m_send_msg.start;
+	if(0 == dif_value || NULL == m_send_msg.pdata)
+	{
+		return NRF_SUCCESS;
+	}
+	else
+	{
+		err_code = send_data();
+		
+		return err_code;
+	}
+}
+
+static void on_ble_evt(ble_evt_t * p_ble_evt)
+{
+    switch (p_ble_evt->header.evt_id)
+    {
+		case BLE_EVT_TX_COMPLETE:	// 添加发送完成处理
+			ble_send_more_data();
+			break;
+		default:
+            // No implementation needed.
+            break;
+    }
+}
+
+uint8_t g_data[500];
+/*
+初始化
+for(uint32_t i = 0; i < 500; i++)
+{
+	g_data[i] = i;
+}
+*/
+uint32_t test_send_more_data(void)
+{
+	uint32_t err_code = ble_send_data(g_data, 500);
+	NRF_LOG_INFO("first send, err_code: %d\r\n", err_code);
+	return err_code;
+}
+```
+
+### 帧格式
+
+|帧头|数据|
+|---|---|
+|1Byte|最大19Byte|
+
+- 帧头格式：0bAAABBBBB，AAA 表示消息类型，BBBBB 表示数据长度。
+- 消息类型最多为8种（0~7）。
+
+|消息类型|值|对应的数据格式|
+|---|---|---|
+|ADC值|0|2个字节为一组的ADC值，大端格式|
+|电位器值|1|TBD|
+|...|...|...|
