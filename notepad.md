@@ -327,6 +327,10 @@ uint32_t test_send_more_data(void)
 - 把 threshold_dbm 设置为一个有效值，当 RSSI 大于或等于上一次 RSSU 值时就会产生一个 BLE_GAP_EVT_RSSI_CHANGED 事件。skip_count 为忽略的次数。
 
 
+### 使用按键
+- 初始化 uint32_t bsp_event_to_button_action_assign(uint32_t button, bsp_button_action_t action, bsp_event_t event)
+- void bsp_event_handler(bsp_event_t event) 中处理初始化时定义的 event 就可以了。
+
 ### 帧格式
 
 |帧头|数据|
