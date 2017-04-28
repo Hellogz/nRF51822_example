@@ -151,6 +151,16 @@ xxxxxxxx-0000-1000-8000-00805F9B34FB
 ### 连接时产生配对请求
 - 利用API：sd_ble_gap_authenticate（）；
 ```c
+uint32_t on_create_authenticate(uint16_t handle)
+{
+	ble_gap_sec_params_t		params;
+	
+	params.bond = 0;
+	params.mitm = 1;
+	
+	return sd_ble_gap_authenticate(handle, &params);
+}
+
 static void on_ble_evt(ble_evt_t * p_ble_evt)
 {
     uint32_t 						err_code;
@@ -163,11 +173,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
 
 			// create authenticate
-			ble_gap_sec_params_t		params;
-		
-			params.bond = 0;	// no bond
-			params.mitm = 1;
-			sd_ble_gap_authenticate(m_conn_handle, &params);
+			on_create_authenticate(m_conn_handle);
 		
             break; // BLE_GAP_EVT_CONNECTED
 ...
