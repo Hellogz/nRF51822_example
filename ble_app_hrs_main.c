@@ -658,6 +658,15 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
     }
 }
 
+uint32_t on_create_authenticate(uint16_t handle)
+{
+    ble_gap_sec_params_t        params;
+    
+    params.bond = 0;
+    params.mitm = 1;
+    
+    return sd_ble_gap_authenticate(handle, &params);
+}
 
 /**@brief Function for handling the Application's BLE Stack events.
  *
@@ -673,13 +682,9 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
             err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
             APP_ERROR_CHECK(err_code);
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
-		
-			// create authenticate
-			ble_gap_sec_params_t		params;
-		
-			params.bond = 0;
-			params.mitm = 1;
-			sd_ble_gap_authenticate(m_conn_handle, &params);
+        
+            // create authenticate
+            on_create_authenticate(m_conn_handle);
             break;
 
         case BLE_GAP_EVT_DISCONNECTED:
@@ -694,14 +699,14 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 
 void add_static_passkey(void)
 {
-	uint32_t err_code;
-	uint8_t passcode[] = "123456";
-	
-	ble_opt_t	static_option;
-	
-	static_option.gap_opt.passkey.p_passkey = passcode;
-	err_code = sd_ble_opt_set(BLE_GAP_OPT_PASSKEY, &static_option);
-	APP_ERROR_CHECK(err_code);
+    uint32_t err_code;
+    uint8_t passcode[] = "123456";
+    
+    ble_opt_t   static_option;
+    
+    static_option.gap_opt.passkey.p_passkey = passcode;
+    err_code = sd_ble_opt_set(BLE_GAP_OPT_PASSKEY, &static_option);
+    APP_ERROR_CHECK(err_code);
 }
 
 /**@brief Function for dispatching a BLE stack event to all modules with a BLE stack event handler.
@@ -752,7 +757,7 @@ static void ble_stack_init(void)
     
     nrf_clock_lf_cfg_t clock_lf_cfg = NRF_CLOCK_LFCLKSRC;
     
-    // Initialize the SoftDevice handler module.	
+    // Initialize the SoftDevice handler module.    
     SOFTDEVICE_HANDLER_INIT(&clock_lf_cfg, NULL);
 
     ble_enable_params_t ble_enable_params;
@@ -942,7 +947,7 @@ int main(void)
     ble_stack_init();
     device_manager_init(erase_bonds);
     gap_params_init();
-	add_static_passkey();
+    add_static_passkey();
     advertising_init();
     services_init();
     sensor_simulator_init();
