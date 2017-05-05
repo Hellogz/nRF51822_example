@@ -337,6 +337,39 @@ uint32_t test_send_more_data(void)
 - 初始化 uint32_t bsp_event_to_button_action_assign(uint32_t button, bsp_button_action_t action, bsp_event_t event)
 - void bsp_event_handler(bsp_event_t event) 中处理初始化时定义的 event 就可以了。
 
+### UART 串口的 APP_UART_COMMUNICATION_ERROR 错误
+- 该问题是因为使用 115200 波特率未使用流控导致的，把波特率降低就可以了，设置 9600 时就正常了。 
+
+### 自定义设备名称
+```c
+uint32_t get_device_name_from_mac_addr(void)
+{
+	ble_gap_conn_sec_mode_t sec_mode;
+	unsigned long int		mac_addr;
+	char					device_name[DEVICE_NAME_LEN] = DEVICE_NAME;
+	
+	BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
+	
+	mac_addr = NRF_FICR->DEVICEADDR[0];	//设备的器件ID
+	
+	sprintf(device_name+7, "%lX", mac_addr);
+	
+	return sd_ble_gap_device_name_set(&sec_mode,
+                                          (const uint8_t *) device_name,
+                                          DEVICE_NAME_LEN);
+}
+
+static void gap_params_init(void)
+{
+    uint32_t                err_code;
+    ble_gap_conn_params_t   gap_conn_params;
+    
+    err_code = get_device_name_from_mac_addr();	// 添加在这里
+    APP_ERROR_CHECK(err_code);
+	...
+}
+```
+
 ### 帧格式
 
 |帧头|数据|
