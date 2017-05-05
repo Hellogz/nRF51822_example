@@ -20,6 +20,9 @@ grammar_cjkRuby: true
 - S212 (ANT only)
 - S332 (concurrent ANT/BLE) 
 - CCCD 客户端特性配置描述符
+- BSP Board Support Package
+- BLE_GAP_ADV_FLAGS_LE_ONLY_LIMITED_DISC_MODE 限制可发现模式
+- BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE 一般可发现模式，用于永远广播。
 
 ## Physical Layer
 - Band ISM @2.4GHz
@@ -342,6 +345,9 @@ uint32_t test_send_more_data(void)
 
 ### 自定义设备名称
 ```c
+#define DEVICE_NAME                     {'N', 'o', 'r', 'd', 'i', 'c', '-'}         /**< Name of device. Will be included in the advertising data. */
+#define DEVICE_NAME_LEN					15
+
 uint32_t get_device_name_from_mac_addr(void)
 {
 	ble_gap_conn_sec_mode_t sec_mode;
@@ -368,6 +374,26 @@ static void gap_params_init(void)
     APP_ERROR_CHECK(err_code);
 	...
 }
+```
+
+### 创建zip格式的DFU升级包
+- 用命令生成 bin 文件：
+```c
+# 用 .axf 文件来生成 .bin 文件。
+C:\Keil_v5\ARM\ARMCC\bin\fromelf.exe .\_build\skin_ac_dfu.axf --output .\bin\skin_ac_dfu.bin --bin
+```
+- 用命令生成 zip 文件：
+ ```c
+ # 用 nrfutil.exe 这个工具来生成 zip 文件。
+ # the tool is located in the C:\Program Files (x86)\Nordic Semiconductor\Master Control Panel\<version>\nrf\ folder on Windows
+# --application-version version: the version of the application image, for example, 0xff
+# --dev-revision version: the revision of the device that should accept the image, for example, 1
+# --dev-type type: the type of the device that should accept the image, for example, 1
+# --sd-req sd_list: a comma-separated list of FWID values of SoftDevices that are valid to be used with the new image, for example, 0x4f,0x5a
+ */
+ # 0x0080 为 S130_nRF51_2.0.0 。
+nrfutil.exe dfu genpkg ble_skin_v0.1.zip --application skin_ac_dfu.bin --application-version 1--dev-revision 1 --dev-type 1 --sd-req 0x0080
+
 ```
 
 ### 帧格式
