@@ -151,7 +151,7 @@ xxxxxxxx-0000-1000-8000-00805F9B34FB
 - BLE 数据传输速率为: 1000000bit/s
 
 
-### 连接时产生配对请求
+### 连接时产生配对请求和判断配对码是否正确
 - 利用API：sd_ble_gap_authenticate（）；
 ```c
 uint32_t on_create_authenticate(uint16_t handle)
@@ -179,6 +179,20 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 			on_create_authenticate(m_conn_handle);
 		
             break; // BLE_GAP_EVT_CONNECTED
+		case BLE_GAP_EVT_AUTH_STATUS:	// 判断是否配对码正确通过验证
+			if(p_ble_evt->evt.gap_evt.params.auth_status.auth_status == BLE_GAP_SEC_STATUS_SUCCESS)
+			{
+				SEGGER_RTT_printf(0, "BLE_GAP_EVT_AUTH_STATUS Success\n");
+				set_ble_connection_state(true);
+				play_timer();
+			}
+			else
+			{
+				m_conn_handle = BLE_CONN_HANDLE_INVALID;
+				set_ble_connection_state(false);
+				SEGGER_RTT_printf(0, "BLE_GAP_EVT_AUTH_STATUS Failed, Disconnected\n");
+			}
+			break;
 ...
 ```
 
@@ -396,6 +410,34 @@ nrfutil.exe dfu genpkg ble_skin_v0.1.zip --application skin_ac_dfu.bin --applica
 
 ```
 
+### 16KB RAM 的 Bootload RAM 修改
+
+|名称|Start|Size|选择|
+|---|---|---|---|
+|IROM1|0x3C000|0x3C00|Startup|
+|IRAM1|0x20002C00|0x1380|None|
+|IRMA2|0x20003F80|0x80|NoInit|
+
+### nRF51822 未使用外部 RTC 时钟的情况下，无法正常初始化 SD 时要修改的内容
+- NRF_CLOCK_LFCLKSRC 这个宏定义，需要更改，因为默认是使用外部 RTC 时钟的。
+- 添加如下宏，并使用：
+
+```c
+// This configuration will set RC oscillator, and check for temperature delta every 4 second, and calibrate the RC every 8 second.
+#define NRF_CLOCK_LFCLKSRC_2      {.source        = NRF_CLOCK_LF_SRC_RC,            \
+                                 .rc_ctiv       = 16,                               \
+                                 .rc_temp_ctiv  = 2,                                \
+                                 .xtal_accuracy = NRF_CLOCK_LF_XTAL_ACCURACY_250_PPM}
+
+```
+### SoftDevice RAM size
+
+ 0> RAM START ADDR 0x20002080 should be adjusted to 0x20001FE8
+ 0> RAM SIZE should be adjusted to 0x6018 
+ 0> sd_ble_enable: RAM START at 0x20002080
+ 0> sd_ble_enable: app_ram_base should be adjusted to 0x20001FF8
+
+
 ### 帧格式
 
 |帧头|数据|
@@ -410,3 +452,35 @@ nrfutil.exe dfu genpkg ble_skin_v0.1.zip --application skin_ac_dfu.bin --applica
 |ADC值|0|2个字节为一组的ADC值，大端格式|
 |电位器值|1|TBD|
 |...|...|...|
+
+change
+
+|帧头|Payload 数据|
+|---|---|
+|3Byte|最大512Byte|
+
+- 帧头格式：帧头共 3 字节，其中第一个字节 表示消息类型，后两个字节 表示数据长度。
+
+|Type|Payload Length|
+|---|---|
+|1 Byte| 2 Byte|
+
+- 消息类型最多为256种（0~255）。
+
+|消息类型|值|对应的数据格式|
+|---|---|---|
+|GSR RAW|0|2 个字节为一组的 ADC 值，大端格式|
+|校时|1|4 字节，时间格式见下表。|
+|疲劳提醒|2|1 字节，0 表示关闭疲劳提醒，1 表示开启疲劳提醒|
+|OTA 升级|3|1 字节， 1 表示开始 OTA 升级， 2 表示设备电量低，3 表示取消 OTA 升级，4 表示取消 OTA 升级成功|
+|确认疲劳|4|0 字节，用来表示收到疲劳提醒后用户按下了功能键。|
+|电池电量等级|5|1 字节，0~5 分别表示 0%~100%|
+|...|...|...|
+
+
+- 时间格式（32位）
+
+|31-26|25-22|21-17|16-12|11-6|5-0|
+|---|---|---|---|---|---|
+|年|月|日|时|分|秒|
+|有效值 0~63|有效值 1~12|有效值 1~31|有效值 0~23|有效值 0~59|有效值 0~59|
