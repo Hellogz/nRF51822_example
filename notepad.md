@@ -406,8 +406,19 @@ C:\Keil_v5\ARM\ARMCC\bin\fromelf.exe .\_build\skin_ac_dfu.axf --output .\bin\ski
 # --sd-req sd_list: a comma-separated list of FWID values of SoftDevices that are valid to be used with the new image, for example, 0x4f,0x5a
  */
  # 0x0080 为 S130_nRF51_2.0.0 。
+ # C:\Program Files (x86)\Nordic Semiconductor\Master Control Panel\3.10.0.14\nrf>
 nrfutil.exe dfu genpkg ble_skin_v0.1.zip --application skin_ac_dfu.bin --application-version 1--dev-revision 1 --dev-type 1 --sd-req 0x0080
 
+```
+
+### 合并 SD、APP、Bootload 为一个hex文件
+- 使用 mergehex.exe 文件，该文件在 C:\Program Files (x86)\Nordic Semiconductor\nrf5x\bin 目录下。
+- 使用方法：
+
+```c
+mergehex.exe -m softdevice.hex app.hex -o without_dfu.hex
+mergehex.exe -m without_def.hex bootload.hex firmware.hex
+// 文件顺序不能错，应该和文件的启动地址有关。
 ```
 
 ### 16KB RAM 的 Bootload RAM 修改
@@ -437,50 +448,66 @@ nrfutil.exe dfu genpkg ble_skin_v0.1.zip --application skin_ac_dfu.bin --applica
  0> sd_ble_enable: RAM START at 0x20002080
  0> sd_ble_enable: app_ram_base should be adjusted to 0x20001FF8
 
+### Keil 里的 RAM 和 Flash 大小计算
+https://devzone.nordicsemi.com/tutorials/26/
+- RAM usage is: ZI-data + RW-data
+- Flash usage is: Code + RO-data + RW-data
+- ZI-data: Zero initialized data, data variables set to 0.
+- RW-data: Data variables that are different from 0.
+- RO-data: Constants placed in flash.
 
-### 帧格式
+### 开启和关闭 SEGGER_RTT Debug
+- define ENABLE_DEBUG_LOG_SUPPORT 
+- define NRF_LOG_USES_RTT=1
 
-|帧头|数据|
-|---|---|
-|1Byte|最大19Byte|
+```c
+#if defined(NRF_LOG_USES_RTT) && NRF_LOG_USES_RTT == 0
+#define SEGGER_RTT_printf(...)
+#elif defined(NRF_LOG_USES_RTT) && NRF_LOG_USES_RTT == 1
+#include "SEGGER_RTT.h"
+#else
 
-- 帧头格式：0bAAABBBBB，AAA 表示消息类型，BBBBB 表示数据长度。
-- 消息类型最多为8种（0~7）。
+#endif
+```
 
-|消息类型|值|对应的数据格式|
-|---|---|---|
-|ADC值|0|2个字节为一组的ADC值，大端格式|
-|电位器值|1|TBD|
-|...|...|...|
+### 如何在超过 DEVICE_MANAGER_MAX_BONDS 时清空 Bond 列表
+- 如果超过 DEVICE_MANAGER_MAX_BONDS 后继续连接会导致出错，使设备重启，再不清空 bond 列表的情况下连接仍然会出错，所以这个问题要在 DEVICE_MANAGER_MAX_BONDS 刚好满时会在 device_instance_allocate() 这个方法产生一个 DM_DEVICE_CONTEXT_FULL 错误，这时可以利用这个标志来在这个时候清空 bond 列表。
+- SDK11.0 这里没有方便删除的 API 。需要修改 device_manager_peripheral.c 和 device_manager.h 。
 
-change
+```c
+// 在 device_manager.h 里添加：
+#define DM_EVT_DEVICE_CONTEXT_FULL	   0x17
 
-|帧头|Payload 数据|
-|---|---|
-|3Byte|最大512Byte|
+// 在 device_manager_peripheral.c 里添加：
+void dm_ble_evt_handler(ble_evt_t * p_ble_evt)
+{
+	...
+	case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
+		...
+		DM_LOG("[DM]: Security parameter request failed, reason 0x%08X.\r\n", err_code);
+		event.event_id = DM_EVT_DEVICE_CONTEXT_FULL;	// 添加这行
+		event_result = err_code;
+		notify_app   = true;
+		
+// 在 main.c 里添加：
+static uint32_t device_manager_evt_handler(dm_handle_t const * p_handle,
+                                           dm_event_t const  * p_event,
+                                           ret_code_t        event_result)
+{
+	...
+	if(p_event->event_id == DM_EVT_SECURITY_SETUP_COMPLETE)
+	{
+		...
+	}
+	else if(p_event->event_id == DM_EVT_DEVICE_CONTEXT_FULL)	// 添加该 else if 分支
+	{
+		// 断开连接操作
+		err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+		APP_ERROR_CHECK(err_code);
+		m_conn_handle = BLE_CONN_HANDLE_INVALID;
+		// 清空 bond 列表
+		device_manager_init(true);																	
+		SEGGER_RTT_printf(0, "DM_EVT_DEVICE_CONTEXT_FULL\n");
+	}
+```
 
-- 帧头格式：帧头共 3 字节，其中第一个字节 表示消息类型，后两个字节 表示数据长度。
-
-|Type|Payload Length|
-|---|---|
-|1 Byte| 2 Byte|
-
-- 消息类型最多为256种（0~255）。
-
-|消息类型|值|对应的数据格式|
-|---|---|---|
-|GSR RAW|0|2 个字节为一组的 ADC 值，大端格式|
-|校时|1|4 字节，时间格式见下表。|
-|疲劳提醒|2|1 字节，0 表示关闭疲劳提醒，1 表示开启疲劳提醒|
-|OTA 升级|3|1 字节， 1 表示开始 OTA 升级， 2 表示设备电量低，3 表示取消 OTA 升级，4 表示取消 OTA 升级成功|
-|确认疲劳|4|0 字节，用来表示收到疲劳提醒后用户按下了功能键。|
-|电池电量等级|5|1 字节，0~5 分别表示 0%~100%|
-|...|...|...|
-
-
-- 时间格式（32位）
-
-|31-26|25-22|21-17|16-12|11-6|5-0|
-|---|---|---|---|---|---|
-|年|月|日|时|分|秒|
-|有效值 0~63|有效值 1~12|有效值 1~31|有效值 0~23|有效值 0~59|有效值 0~59|
