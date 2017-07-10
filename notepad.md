@@ -183,13 +183,11 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 			if(p_ble_evt->evt.gap_evt.params.auth_status.auth_status == BLE_GAP_SEC_STATUS_SUCCESS)
 			{
 				SEGGER_RTT_printf(0, "BLE_GAP_EVT_AUTH_STATUS Success\n");
-				set_ble_connection_state(true);
-				play_timer();
 			}
 			else
 			{
+				sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
 				m_conn_handle = BLE_CONN_HANDLE_INVALID;
-				set_ble_connection_state(false);
 				SEGGER_RTT_printf(0, "BLE_GAP_EVT_AUTH_STATUS Failed, Disconnected\n");
 			}
 			break;
