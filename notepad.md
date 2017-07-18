@@ -451,12 +451,12 @@ static void wait_for_events(void)
         // Wait in low power state for any events.
         uint32_t err_code = sd_app_evt_wait();
         APP_ERROR_CHECK(err_code);
-		// add watch dog	
-		if ( NRF_WDT->RUNSTATUS & 0x01 )
-		{
-			NRF_WDT->RR[0] = WDT_RR_RR_Reload;
-		}
-		// end add
+	// add watch dog	
+	if ( NRF_WDT->RUNSTATUS & 0x01 )
+	{
+		NRF_WDT->RR[0] = WDT_RR_RR_Reload;
+	}
+	// end add
         // Event received. Process it from the scheduler.
         app_sched_execute();
 
@@ -464,14 +464,14 @@ static void wait_for_events(void)
             (m_update_status == BOOTLOADER_TIMEOUT)  ||
             (m_update_status == BOOTLOADER_RESET))
         {
-			// add watch dog
-			if ( NRF_WDT->RUNSTATUS & 0x01 )
-			{
-				NRF_WDT->RR[0] = WDT_RR_RR_Reload;
-			}
-			// end add
-            // When update has completed or a timeout/reset occured we will return.
-            return;
+		// add watch dog
+		if ( NRF_WDT->RUNSTATUS & 0x01 )
+		{
+		NRF_WDT->RR[0] = WDT_RR_RR_Reload;
+		}
+		// end add
+            	// When update has completed or a timeout/reset occured we will return.
+            	return;
         }
     }
 }
