@@ -395,17 +395,23 @@ static void gap_params_init(void)
 C:\Keil_v5\ARM\ARMCC\bin\fromelf.exe .\_build\skin_ac_dfu.axf --output .\bin\skin_ac_dfu.bin --bin
 ```
 - 用命令生成 zip 文件：
- ```c
- # 用 nrfutil.exe 这个工具来生成 zip 文件。
- # the tool is located in the C:\Program Files (x86)\Nordic Semiconductor\Master Control Panel\<version>\nrf\ folder on Windows
+```c
+# 用 nrfutil.exe 这个工具来生成 zip 文件。
+# the tool is located in the C:\Program Files (x86)\Nordic Semiconductor\Master Control Panel\<version>\nrf\ folder on Windows
 # --application-version version: the version of the application image, for example, 0xff
 # --dev-revision version: the revision of the device that should accept the image, for example, 1
 # --dev-type type: the type of the device that should accept the image, for example, 1
 # --sd-req sd_list: a comma-separated list of FWID values of SoftDevices that are valid to be used with the new image, for example, 0x4f,0x5a
  */
- # 0x0080 为 S130_nRF51_2.0.0 。
- # C:\Program Files (x86)\Nordic Semiconductor\Master Control Panel\3.10.0.14\nrf>
+# 0x0080 为 S130_nRF51_2.0.0 。
+# C:\Program Files (x86)\Nordic Semiconductor\Master Control Panel\3.10.0.14\nrf>
 nrfutil.exe dfu genpkg ble_skin_v0.1.zip --application skin_ac_dfu.bin --application-version 1--dev-revision 1 --dev-type 1 --sd-req 0x0080
+
+# bat 脚本
+@echo off
+set /p package_name=input name.zip for zip package:
+nrfutil.exe dfu genpkg %package_name% --application filename.bin --application-version 1 --dev-revision 1 --dev-type 1 --sd-req 0x0080
+pause
 
 ```
 
@@ -426,6 +432,49 @@ mergehex.exe -m without_def.hex bootload.hex firmware.hex
 |IROM1|0x3C000|0x3C00|Startup|
 |IRAM1|0x20002C00|0x1380|None|
 |IRMA2|0x20003F80|0x80|NoInit|
+
+### 16KB 使用 DFU 的 Project 设置
+|名称|Start|Size|选择|
+|---|---|---|---|
+|IROM1|0x1B000|0x25000|Startup|
+|IRAM1|0x20002080|0x5F80|None|
+
+### Bootload 添加看门狗
+
+- 在 bootloader.c 文件的 wait_for_events() 方法添加如下代码：
+```c
+static void wait_for_events(void)
+{
+    for (;;)
+    {
+        // Wait in low power state for any events.
+        uint32_t err_code = sd_app_evt_wait();
+        APP_ERROR_CHECK(err_code);
+		// add watch dog	
+		if ( NRF_WDT->RUNSTATUS & 0x01 )
+		{
+			NRF_WDT->RR[0] = WDT_RR_RR_Reload;
+		}
+		// end add
+        // Event received. Process it from the scheduler.
+        app_sched_execute();
+
+        if ((m_update_status == BOOTLOADER_COMPLETE) ||
+            (m_update_status == BOOTLOADER_TIMEOUT)  ||
+            (m_update_status == BOOTLOADER_RESET))
+        {
+			// add watch dog
+			if ( NRF_WDT->RUNSTATUS & 0x01 )
+			{
+				NRF_WDT->RR[0] = WDT_RR_RR_Reload;
+			}
+			// end add
+            // When update has completed or a timeout/reset occured we will return.
+            return;
+        }
+    }
+}
+```
 
 ### nRF51822 未使用外部 RTC 时钟的情况下，无法正常初始化 SD 时要修改的内容
 - NRF_CLOCK_LFCLKSRC 这个宏定义，需要更改，因为默认是使用外部 RTC 时钟的。
