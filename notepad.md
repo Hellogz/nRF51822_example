@@ -396,18 +396,19 @@ C:\Keil_v5\ARM\ARMCC\bin\fromelf.exe .\_build\skin_ac_dfu.axf --output .\bin\ski
 ```
 - 用命令生成 zip 文件：
 ```c
+/*
 # 用 nrfutil.exe 这个工具来生成 zip 文件。
 # the tool is located in the C:\Program Files (x86)\Nordic Semiconductor\Master Control Panel\<version>\nrf\ folder on Windows
 # --application-version version: the version of the application image, for example, 0xff
 # --dev-revision version: the revision of the device that should accept the image, for example, 1
 # --dev-type type: the type of the device that should accept the image, for example, 1
 # --sd-req sd_list: a comma-separated list of FWID values of SoftDevices that are valid to be used with the new image, for example, 0x4f,0x5a
- */
-# 0x0080 为 S130_nRF51_2.0.0 。
+*/
+// 0x0080 为 S130_nRF51_2.0.0 。
 # C:\Program Files (x86)\Nordic Semiconductor\Master Control Panel\3.10.0.14\nrf>
 nrfutil.exe dfu genpkg ble_skin_v0.1.zip --application skin_ac_dfu.bin --application-version 1--dev-revision 1 --dev-type 1 --sd-req 0x0080
 
-# bat 脚本
+// bat 脚本
 @echo off
 set /p package_name=input name.zip for zip package:
 nrfutil.exe dfu genpkg %package_name% --application filename.bin --application-version 1 --dev-revision 1 --dev-type 1 --sd-req 0x0080
