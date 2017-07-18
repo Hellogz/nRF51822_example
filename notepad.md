@@ -467,7 +467,7 @@ static void wait_for_events(void)
 		// add watch dog
 		if ( NRF_WDT->RUNSTATUS & 0x01 )
 		{
-		NRF_WDT->RR[0] = WDT_RR_RR_Reload;
+			NRF_WDT->RR[0] = WDT_RR_RR_Reload;
 		}
 		// end add
             	// When update has completed or a timeout/reset occured we will return.
