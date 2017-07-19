@@ -54,7 +54,7 @@
 |crypt_method|是|auth 加密方法，0：不加密；1：AES 加密（CBC 模式，PKCS7 填充方式）|
 |auth_ver|是|auth version 设备和微信进行 auth 时，会根据版本号来确认 auth buf 和 auth key 的格式（各 version 对应的 auth buf 及 key 的具体格式可以参看“客户端蓝牙外设协议”），该字段目前支持取值：0：不加密的 version；1：version 1|
 |manu_mac_pos|是|表示 MAC 地址在厂商广播 manufature data 里含有 MAC 地址的偏移，取值如下：-1 表示在尾部、-2 表示不包含 MAC 地址、其他值为非法偏移|
-|ser_mac_pos|表示 MAC 地址在厂商 serial number 里含有 MAC 地址的偏移，取值如下:-1 表示在尾部、-2 表示不包含 MAC 地址、其他值为非法偏移|
+|ser_mac_pos|是|表示 MAC 地址在厂商 serial number 里含有 MAC 地址的偏移，取值如下:-1 表示在尾部、-2 表示不包含 MAC 地址、其他值为非法偏移|
 |ble_simple_protocol|否|精简协议类型，取值如下：计步设备精简协议：1（若该字段填 1，connect_protocol 必须包括 3.非精简协议设备切勿填写该字段）|
 |op_type|否|请求操作的类型，限定取值为：1：设备更新（更新已授权设备的各属性值）|
 |product_id|是|设备 ID|
