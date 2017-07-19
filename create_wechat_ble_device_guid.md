@@ -3,7 +3,7 @@
 ### 微信平台
 #### 微信公众平台接口测试帐号申请
 - 使用微信扫一扫登陆[微信公众平台](https://mp.weixin.qq.com/debug/cgi-bin/sandbox?t=sandbox/login)。
-![](http://ww1.sinaimg.cn/large/6c1ebe8egy1fhovx0tl45j20yk0cedkx.jpg)
+![1](https://ws1.sinaimg.cn/large/6c1ebe8egy1fhp1l2je3pj20yk0cedkx.jpg)
 - 登录成功后会显示测试号信息，**appID** 和 **appsecret** 。
 ![](http://ww1.sinaimg.cn/large/6c1ebe8egy1fhp0ygmxrlj20xs09zweq.jpg)
 
