@@ -166,7 +166,7 @@ uint32_t on_create_authenticate(uint16_t handle)
 
 static void on_ble_evt(ble_evt_t * p_ble_evt)
 {
-    uint32_t 						err_code;
+    uint32_t 	err_code;
 	...
     switch (p_ble_evt->header.evt_id)
     {
@@ -175,22 +175,22 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
             APP_ERROR_CHECK(err_code);
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
 
-			// create authenticate
-			on_create_authenticate(m_conn_handle);
+	    // create authenticate
+	    on_create_authenticate(m_conn_handle);
 		
             break; // BLE_GAP_EVT_CONNECTED
-		case BLE_GAP_EVT_AUTH_STATUS:	// 判断是否配对码正确通过验证
-			if(p_ble_evt->evt.gap_evt.params.auth_status.auth_status == BLE_GAP_SEC_STATUS_SUCCESS)
-			{
-				SEGGER_RTT_printf(0, "BLE_GAP_EVT_AUTH_STATUS Success\n");
-			}
-			else
-			{
-				sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
-				m_conn_handle = BLE_CONN_HANDLE_INVALID;
-				SEGGER_RTT_printf(0, "BLE_GAP_EVT_AUTH_STATUS Failed, Disconnected\n");
-			}
-			break;
+	case BLE_GAP_EVT_AUTH_STATUS:	// 判断是否配对码正确通过验证
+	    if(p_ble_evt->evt.gap_evt.params.auth_status.auth_status == BLE_GAP_SEC_STATUS_SUCCESS)
+	    {
+		SEGGER_RTT_printf(0, "BLE_GAP_EVT_AUTH_STATUS Success\n");
+            }
+	    else
+	    {
+		sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+		m_conn_handle = BLE_CONN_HANDLE_INVALID;
+		SEGGER_RTT_printf(0, "BLE_GAP_EVT_AUTH_STATUS Failed, Disconnected\n");
+	    }
+	    break;
 ...
 ```
 
@@ -231,7 +231,7 @@ uint8_t  m_boot_settings[CODE_PAGE_SIZE]    __attribute__((at(BOOTLOADER_SETTING
 ```c
 typedef struct blk_send_msg_s
 {
-	uint32_t start;				// send start offset
+	uint32_t start;			// send start offset
 	uint32_t max_len;		// the total length of the data to be sent
 	uint8_t	*pdata;
 } blk_send_msg_t;
@@ -240,9 +240,9 @@ blk_send_msg_t	m_send_msg;
 
 uint32_t ble_send(uint8_t *data, uint16_t len)
 {
-	ble_gatts_hvx_params_t hvx_params;
+    ble_gatts_hvx_params_t hvx_params;
 
-	memset(&hvx_params, 0, sizeof(hvx_params));
+    memset(&hvx_params, 0, sizeof(hvx_params));
 
     hvx_params.handle = m_test.test_handle.value_handle;
     hvx_params.p_data = data;
@@ -316,10 +316,10 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 {
     switch (p_ble_evt->header.evt_id)
     {
-		case BLE_EVT_TX_COMPLETE:	// 添加发送完成处理
-			ble_send_more_data();
-			break;
-		default:
+	case BLE_EVT_TX_COMPLETE:	// 添加发送完成处理
+	    ble_send_more_data();
+    	    break;
+	default:
             // No implementation needed.
             break;
     }
@@ -358,13 +358,13 @@ uint32_t test_send_more_data(void)
 ### 自定义设备名称
 ```c
 #define DEVICE_NAME                     {'N', 'o', 'r', 'd', 'i', 'c', '-'}         /**< Name of device. Will be included in the advertising data. */
-#define DEVICE_NAME_LEN					15
+#define DEVICE_NAME_LEN			15
 
 uint32_t get_device_name_from_mac_addr(void)
 {
-	ble_gap_conn_sec_mode_t sec_mode;
+	ble_gap_conn_sec_mode_t 	sec_mode;
 	unsigned long int		mac_addr;
-	char					device_name[DEVICE_NAME_LEN] = DEVICE_NAME;
+	char				device_name[DEVICE_NAME_LEN] = DEVICE_NAME;
 	
 	BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
 	
@@ -451,12 +451,12 @@ static void wait_for_events(void)
         // Wait in low power state for any events.
         uint32_t err_code = sd_app_evt_wait();
         APP_ERROR_CHECK(err_code);
-		// add watch dog	
-		if ( NRF_WDT->RUNSTATUS & 0x01 )
-		{
-			NRF_WDT->RR[0] = WDT_RR_RR_Reload;
-		}
-		// end add
+	// add watch dog	
+	if ( NRF_WDT->RUNSTATUS & 0x01 )
+	{
+		NRF_WDT->RR[0] = WDT_RR_RR_Reload;
+	}
+	// end add
         // Event received. Process it from the scheduler.
         app_sched_execute();
 
@@ -464,14 +464,14 @@ static void wait_for_events(void)
             (m_update_status == BOOTLOADER_TIMEOUT)  ||
             (m_update_status == BOOTLOADER_RESET))
         {
-			// add watch dog
-			if ( NRF_WDT->RUNSTATUS & 0x01 )
-			{
-				NRF_WDT->RR[0] = WDT_RR_RR_Reload;
-			}
-			// end add
-            // When update has completed or a timeout/reset occured we will return.
-            return;
+		// add watch dog
+		if ( NRF_WDT->RUNSTATUS & 0x01 )
+		{
+			NRF_WDT->RR[0] = WDT_RR_RR_Reload;
+		}
+		// end add
+            	// When update has completed or a timeout/reset occured we will return.
+            	return;
         }
     }
 }
