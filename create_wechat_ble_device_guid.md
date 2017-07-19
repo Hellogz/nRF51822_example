@@ -3,40 +3,51 @@
 ### 微信平台
 #### 微信公众平台接口测试帐号申请
 - 使用微信扫一扫登陆[微信公众平台](https://mp.weixin.qq.com/debug/cgi-bin/sandbox?t=sandbox/login)。
+
 ![1](./photo/1.png)
 - 登录成功后会显示测试号信息，**appID** 和 **appsecret** 。
+
 ![2](./photo/2.png)
 
 #### 开启设备功能接口
 - 点击框中出现的 “开启” （图中为已开启）。
+
 ![3](./photo/34.png)
 
 #### 添加产品
 - 设备功能接口开启后，会出现“设置”按钮，点击进入下一个界面，进行设备功能管理。
+
 ![4](./photo/34.png)
 - 在该界面，点击“添加产品”按钮，为我们的计步器设备添加一个产品类别：
+
 ![5](./photo/58.png)
 - 按照提示填入相关的信息：
+
 ![6](./photo/6.png)
 - 点击“下一步”进入“产品能力登记”界面：
+
 ![7](./photo/7.png)
 - 最后，点击“添加”按钮，将产品添加进去。之后会在产品管理中看到添加的产品信息，**product_id** 。
+
 ![8](./photo/58.png)
 
 #### 授权设备
 - 将 appID 和 appsecret 替换图中的 Key 对应的 Value 。
 - 服务器会返回一个 **access_token** 。
+
 ![9](./photo/9.png)
 
 #### 为设备生成一个唯一ID（deviceid）及二维码（通过微信扫描即可添加设备）
 - 将 access_token 和 product_id 替换图中的 Key 对应的 Value 。
-![10](./photo/10.png)
 - 服务器会返回一个 **qrticket** （二维码网站）和 **deviceid**。
+
+![10](./photo/10.png)
 
 #### 设备鉴权
 - 将 access_token 和 product_id 替换图中的 Key 对应的 Value 。
 - 将 deviceid 替换图中的 id ，mac 填写蓝牙设备的 MAC 地址。
 - 服务器会返回授权结果，查看 errcode 和 errmsg 。errcode = 0 和 errmsg = "OK" 时表示授权成功了。
+
 ![11](./photo/11.png)
 - 字段含义：
 
