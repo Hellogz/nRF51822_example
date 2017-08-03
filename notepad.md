@@ -637,11 +637,12 @@ nrf_adc_value_t get_battery_adc_value(void)
 
 #### 遇到过的问题：
 - 可参考下面代码例程。
+- Q： 写入 Flash 的数据与读取 Flash 的数据不一致？
+- A：写入的 Flash 数据必须为 static 的。写入 Flash 过程中会拷贝数据，如果是临时数据则会出现该问题。
+- Q：写入 Flash 后马上读取 Flash，导致设备复位？
+- A：可以通过设置标志在 main 函数中来进行 Flash 的操作，尽量不要在数据处理函数中直接操作 Flash，因为这样操作可能会出错，导致设备复位。
 
-Q： 写入 Flash 的数据与读取 Flash 的数据不一致？
-A：写入的 Flash 数据必须为 static 的。写入 Flash 过程中会拷贝数据，如果是临时数据则会出现该问题。
-Q：写入 Flash 后马上读取 Flash，导致设备复位？
-A：可以通过设置标志在 main 函数中来进行 Flash 的操作，尽量不要在数据处理函数中直接操作 Flash，因为这样操作可能会出错，导致设备复位。
+
 ```c
 #include <stdint.h>
 #include <string.h>
