@@ -226,120 +226,6 @@ uint8_t  m_boot_settings[CODE_PAGE_SIZE]    __attribute__((at(BOOTLOADER_SETTING
 uint8_t  m_boot_settings[CODE_PAGE_SIZE]    __attribute__((at(BOOTLOADER_SETTINGS_ADDRESS))) __attribute__((used)) = {BANK_VALID_APP};
 ```
 
-### 高效率发送大数据
-- 原理：通过在每次数据传输完成后继续传输后面剩余的数据和减少每次传输之间的间隔时间来提高发送效率，这样使得一个连接事件可以发送多个包（最多6个）。
-```c
-typedef struct blk_send_msg_s
-{
-	uint32_t start;			// send start offset
-	uint32_t max_len;		// the total length of the data to be sent
-	uint8_t	*pdata;
-} blk_send_msg_t;
-
-blk_send_msg_t	m_send_msg;
-
-uint32_t ble_send(uint8_t *data, uint16_t len)
-{
-    ble_gatts_hvx_params_t hvx_params;
-
-    memset(&hvx_params, 0, sizeof(hvx_params));
-
-    hvx_params.handle = m_test.test_handle.value_handle;
-    hvx_params.p_data = data;
-    hvx_params.p_len  = &len;
-    hvx_params.type   = BLE_GATT_HVX_NOTIFICATION;
-
-    return sd_ble_gatts_hvx(m_test.conn_handle, &hvx_params);
-}
-
-uint32_t send_data(void)
-{
-	uint8_t temp_len;
-	uint32_t dif_value;
-	uint32_t err_code = NRF_SUCCESS;
-	uint8_t *pdata = m_send_msg.pdata;
-	uint32_t start = m_send_msg.start;
-	uint32_t max_len = m_send_msg.max_len;
-	
-	do {
-		dif_value = max_len - start;
-		temp_len = dif_value > 20? 20:dif_value;
-		err_code = ble_send(pdata+start, temp_len);
-		if(NRF_SUCCESS == err_code)
-		{
-			start += temp_len;
-		}
-	} while((NRF_SUCCESS == err_code) && (max_len - start) > 0);
-	m_send_msg.start = start;
-	
-	return err_code;
-}
-
-uint32_t ble_send_data(uint8_t *pdata, uint32_t len)
-{
-	if(NULL == pdata || len <= 0)
-	{
-		return NRF_ERROR_INVALID_PARAM;
-	}
-	else
-	{
-		uint32_t	err_code = NRF_SUCCESS;
-		m_send_msg.start = 0;
-		m_send_msg.max_len = len;
-		m_send_msg.pdata = pdata;
-		
-		err_code = send_data();
-		
-		return err_code;
-	}
-}
-
-uint32_t ble_send_more_data(void)
-{
-	uint32_t err_code;
-	uint32_t dif_value;
-	
-	dif_value = m_send_msg.max_len - m_send_msg.start;
-	if(0 == dif_value || NULL == m_send_msg.pdata)
-	{
-		return NRF_SUCCESS;
-	}
-	else
-	{
-		err_code = send_data();
-		
-		return err_code;
-	}
-}
-
-static void on_ble_evt(ble_evt_t * p_ble_evt)
-{
-    switch (p_ble_evt->header.evt_id)
-    {
-	case BLE_EVT_TX_COMPLETE:	// 添加发送完成处理
-	    ble_send_more_data();
-    	    break;
-	default:
-            // No implementation needed.
-            break;
-    }
-}
-
-uint8_t g_data[500];
-/*
-初始化
-for(uint32_t i = 0; i < 500; i++)
-{
-	g_data[i] = i;
-}
-*/
-uint32_t test_send_more_data(void)
-{
-	uint32_t err_code = ble_send_data(g_data, 500);
-	NRF_LOG_INFO("first send, err_code: %d\r\n", err_code);
-	return err_code;
-}
-```
 
 ### 获取 RSSI
 - 使用两个函数：uint32_t  sd_ble_gap_rssi_start (uint16_t conn_handle, uint8_t threshold_dbm, uint8_t skip_count) 和 uint32_t 	sd_ble_gap_rssi_get (uint16_t conn_handle, int8_t \*p_rssi)
@@ -354,6 +240,30 @@ uint32_t test_send_more_data(void)
 
 ### UART 串口的 APP_UART_COMMUNICATION_ERROR 错误
 - 该问题是因为使用 115200 波特率未使用流控导致的，把波特率降低就可以了，设置 9600 时就正常了。 
+
+
+### 获取 MAC 地址
+
+```c
+void get_mac_addr(uint8_t *p_mac_addr)
+{
+	uint32_t error_code;
+	ble_gap_addr_t p_mac_addr_t;
+	
+	error_code = sd_ble_gap_address_get(&p_mac_addr_t);
+	APP_ERROR_CHECK(error_code);
+
+#if 1 // mac address LSB or MSB
+	for ( uint8_t i = 6; i > 0; )
+	{	
+		i--;
+		p_mac_addr[5-i]= p_mac_addr_t.addr[i];
+	}
+#else
+	memcpy(p_mac_addr, p_mac_addr_t.addr, 6);
+#endif
+}
+```
 
 ### 自定义设备名称
 ```c
@@ -389,12 +299,14 @@ static void gap_params_init(void)
 ```
 
 ### 创建zip格式的DFU升级包
-- 用命令生成 bin 文件：
+
+- 1. Keil 中用命令生成 bin 文件：Option->User->After Build/Rebuild->Run#1:choice and write to command->**C:\Keil_v5\ARM\ARMCC\bin\fromelf.exe .\_build\out_file_name.axf --output .\bin\out_bin_file_name.bin --bin**
+
 ```c
 # 用 .axf 文件来生成 .bin 文件。
-C:\Keil_v5\ARM\ARMCC\bin\fromelf.exe .\_build\skin_ac_dfu.axf --output .\bin\skin_ac_dfu.bin --bin
+C:\Keil_v5\ARM\ARMCC\bin\fromelf.exe .\_build\out_file_name.axf --output .\bin\out_bin_file_name.bin --bin
 ```
-- 用命令生成 zip 文件：
+- 2. 用命令生成 zip 文件：
 ```c
 /*
 # 用 nrfutil.exe 这个工具来生成 zip 文件。
@@ -406,12 +318,12 @@ C:\Keil_v5\ARM\ARMCC\bin\fromelf.exe .\_build\skin_ac_dfu.axf --output .\bin\ski
 */
 // 0x0080 为 S130_nRF51_2.0.0 。
 # C:\Program Files (x86)\Nordic Semiconductor\Master Control Panel\3.10.0.14\nrf>
-nrfutil.exe dfu genpkg ble_skin_v0.1.zip --application skin_ac_dfu.bin --application-version 1--dev-revision 1 --dev-type 1 --sd-req 0x0080
+nrfutil.exe dfu genpkg ota_package_name.zip --application bin_file_name.bin --application-version 1--dev-revision 1 --dev-type 1 --sd-req 0x0080
 
 // bat 脚本
 @echo off
 set /p package_name=input name.zip for zip package:
-nrfutil.exe dfu genpkg %package_name% --application filename.bin --application-version 1 --dev-revision 1 --dev-type 1 --sd-req 0x0080
+nrfutil.exe dfu genpkg %package_name% --application bin_file_name.bin --application-version 1 --dev-revision 1 --dev-type 1 --sd-req 0x0080
 pause
 
 ```
@@ -476,6 +388,18 @@ static void wait_for_events(void)
     }
 }
 ```
+
+### Bootload 移植注意事项
+- 官方例程中定义的按键和 LED 的 GPIO。可以根据需求对 leds_init() 和 buttons_init() 进行修改。
+
+```c
+#define BOOTLOADER_BUTTON               BSP_BUTTON_0                                            /**< Button used to enter SW update mode. */
+#define UPDATE_IN_PROGRESS_LED          BSP_LED_0                                               /**< Led used to indicate that DFU is active. */
+
+```
+
+- 如果产品使用的不是 16MHz 外部晶振，需要在 Bootload 中进行配置，例如如果使用 32MHz 的外部晶振需要加上该代码：NRF_CLOCK->XTALFREQ = 0; // 32MHz 
+
 
 ### nRF51822 未使用外部 RTC 时钟的情况下，无法正常初始化 SD 时要修改的内容
 - NRF_CLOCK_LFCLKSRC 这个宏定义，需要更改，因为默认是使用外部 RTC 时钟的。
@@ -559,522 +483,8 @@ static uint32_t device_manager_evt_handler(dm_handle_t const * p_handle,
 	}
 ```
 
-### 使用多个 ADC Channel
-- 使用 nrf_drv_adc_channel_enable 函数来添加多个 ADC Channel。
-- 使用 nrf_drv_adc_sample_convert 函数来开启单个 ADC Channel 的转换。
 
-```c
-#include <stdint.h>
-#include <string.h>
-#include "bsp.h"
-#include "nrf.h"
-#include "nrf_drv_adc.h"
-#include "app_error.h"
-#include "app_util_platform.h"
-#include "app_trace.h"
 
-static nrf_drv_adc_channel_t m_battery_adc_config = NRF_DRV_ADC_DEFAULT_CHANNEL(NRF_ADC_CONFIG_INPUT_3); /**< Channel instance. Default configuration used. */
-static nrf_adc_value_t       battery_adc_value = 0;
 
-static nrf_drv_adc_channel_t m_motor_adc_config = NRF_DRV_ADC_DEFAULT_CHANNEL(NRF_ADC_CONFIG_INPUT_4); /**< Channel instance. Default configuration used. */
-static nrf_adc_value_t       motor_adc_value = 0;
 
-/**
- * @brief ADC interrupt handler.
- */
-static void adc_event_handler(nrf_drv_adc_evt_t const * p_event)
-{
-	
-}
 
-/**
- * @brief ADC initialization.
- */
-void adc_config(void)
-{
-    ret_code_t ret_code;
-
-    ret_code = nrf_drv_adc_init(NULL, adc_event_handler);
-    APP_ERROR_CHECK(ret_code);
-
-    nrf_drv_adc_channel_enable(&m_battery_adc_config);
-	nrf_drv_adc_channel_enable(&m_motor_adc_config);
-}
-
-void start_battery_adc_convert(void)
-{
-	nrf_drv_adc_sample_convert(&m_battery_adc_config, &battery_adc_value);
-}
-
-void start_motor_adc_convert(void)
-{
-	nrf_drv_adc_sample_convert(&m_motor_adc_config, &motor_adc_value);
-}
-
-nrf_adc_value_t get_motor_adc_value(void)
-{
-	start_motor_adc_convert();
-	app_trace_log("motor_adc_value:%d \r\n", motor_adc_value);
-	return motor_adc_value;
-}
-
-nrf_adc_value_t get_battery_adc_value(void)
-{
-	start_battery_adc_convert();
-	app_trace_log("battery_adc_value:%d \r\n", motor_adc_value);
-	return battery_adc_value;
-}
-
-``` 
-
-### 协议栈中使用 Flash
-- pstorage_init 函数初始化
-- pstorage_register 申请 Flash 块。
-- pstorage_clear 擦除 Flash 块。
-- pstorage_store 存储 Flash 块。
-- pstorage_update 更新 Flash 块。
-- pstorage_load 获取 Flash 块。
-
-#### 遇到过的问题：
-- 可参考下面代码例程。
-- Q： 写入 Flash 的数据与读取 Flash 的数据不一致？
-- A：写入的 Flash 数据必须为 static 的。写入 Flash 过程中会拷贝数据，如果是临时数据则会出现该问题。
-- Q：写入 Flash 后马上读取 Flash，导致设备复位？
-- A：可以通过设置标志在 main 函数中来进行 Flash 的操作，尽量不要在数据处理函数中直接操作 Flash，因为这样操作可能会出错，导致设备复位。
-
-
-```c
-#include <stdint.h>
-#include <string.h>
-#include "nordic_common.h"
-#include "nrf.h"
-#include "ble_hci.h"
-#include "ble_advdata.h"
-#include "ble_advertising.h"
-#include "ble_conn_params.h"
-#include "softdevice_handler.h"
-#include "app_util_platform.h"
-#include "bsp.h"
-#include "nrf_log.h"
-#include "pstorage.h"
-#include "nrf_delay.h"
-
-#define UMBRELLA_BLOCK						0
-#define LOCK_PASSWORD_BLOCK					1
-#define AES_KEY_BLOCK						2
-
-void test_flash_block(void);
-
-void init_flash_store(void);
-void erase_flash_store(void);
-
-void write_flash(pstorage_size_t block, uint8_t *write, pstorage_size_t length, pstorage_size_t offset);
-void read_flash(pstorage_size_t block, uint8_t *read, pstorage_size_t length, pstorage_size_t offset);
-
-#define  M_BLOCK_COUNT      3
-#define  M_BLOCK_SIZE       16 
-
-pstorage_handle_t m_flash_handle;
-static pstorage_handle_t base_flash_handle;
-
-
-static void flash_pstorage_cb_handler(pstorage_handle_t * handle,uint8_t op_code,uint32_t result, uint8_t * p_data, uint32_t data_len) 
-{ 
-	switch(op_code) 
-	{ 
-		case PSTORAGE_STORE_OP_CODE:	
-			if (result == NRF_SUCCESS) 
-			{ 
-				app_trace_log("PSTORAGE_STORE_OP_CODE Success\r\n");
-			} 
-			else
-			{
-				app_trace_log("PSTORAGE_STORE_OP_CODE Failed\r\n");
-			}
-			break; 
-		case PSTORAGE_UPDATE_OP_CODE: 
-			if (result == NRF_SUCCESS) 
-			{ 
-				app_trace_log("PSTORAGE_UPDATE_OP_CODE Success\r\n");
-			} 
-			else
-			{
-				app_trace_log("PSTORAGE_UPDATE_OP_CODE Failed\r\n");
-			}
-			break; 
-		case PSTORAGE_LOAD_OP_CODE: 
-			if (result == NRF_SUCCESS) 
-			{ 
-				app_trace_log("PSTORAGE_LOAD_OP_CODE Success\r\n");
-			} 
-			else
-			{
-				app_trace_log("PSTORAGE_LOAD_OP_CODE Failed\r\n");
-			}
-			break; 
-		case PSTORAGE_CLEAR_OP_CODE: 
-			if (result == NRF_SUCCESS) 
-			{ 
-				app_trace_log("PSTORAGE_CLEAR_OP_CODE Success\r\n");
-			} 
-			else
-			{
-				app_trace_log("PSTORAGE_CLEAR_OP_CODE Failed\r\n");
-			}
-			break; 
-		default: 
-				break; 
-	} 
-} 
-void flash_init()
-{
-	uint32_t retval;
-	
-	retval = pstorage_init();
-	if(retval == NRF_SUCCESS)
-	{
-
-	}
-	else
-	{
-
-	}
-}
-void flash_regeist()
-{
-	pstorage_module_param_t param;
-	uint32_t retval;
-	
-	param.block_size = M_BLOCK_SIZE;
-	param.block_count = M_BLOCK_COUNT;
-	param.cb = flash_pstorage_cb_handler;
-	retval = pstorage_register(&param, &base_flash_handle);
-	if (retval == NRF_SUCCESS)
-	{
-		;// Registration successful.
-	}
-	else
-	{
-		;// Failed to register, take corrective action.
-	}
-
-}
-void clear_flash(void) 
-{ 
-	uint32_t err_code; 
-	
-	err_code = pstorage_clear(&base_flash_handle, M_BLOCK_SIZE*M_BLOCK_COUNT); 
-	APP_ERROR_CHECK(err_code); 
-} 
-
-void storage_flash(pstorage_size_t block_num, uint8_t *p_source_data, pstorage_size_t dat_length, pstorage_size_t offset ) 
-{ 
-	uint32_t err_code; 
-	
-	err_code = pstorage_block_identifier_get(&base_flash_handle, block_num, &m_flash_handle);
-	APP_ERROR_CHECK(err_code);
-	err_code = pstorage_store(&m_flash_handle, p_source_data, dat_length, offset); 
-	APP_ERROR_CHECK(err_code); 
-} 
-void update_flash(pstorage_size_t block_num, uint8_t *p_source_data, pstorage_size_t dat_length, pstorage_size_t offset ) 
-{ 
-	uint32_t err_code; 
-	
-	err_code = pstorage_block_identifier_get(&base_flash_handle, block_num, &m_flash_handle);
-	APP_ERROR_CHECK(err_code); 
-	err_code = pstorage_update(&m_flash_handle, p_source_data, dat_length, offset); 
-	APP_ERROR_CHECK(err_code); 
-} 
-
-void load_flash(pstorage_size_t block_num, uint8_t * p_source_data, pstorage_size_t dat_length, pstorage_size_t offset) 
-{ 
-	uint32_t err_code; 
-	
-	err_code = pstorage_block_identifier_get(&base_flash_handle, block_num, &m_flash_handle); 
-	APP_ERROR_CHECK(err_code); 
-	err_code = pstorage_load(p_source_data, &m_flash_handle, dat_length, offset); 
-	APP_ERROR_CHECK(err_code); 
-} 
-
-void write_flash(pstorage_size_t block, uint8_t *write, pstorage_size_t length, pstorage_size_t offset)
-{
-	update_flash(block, write, length, offset);
-}
-
-void read_flash(pstorage_size_t block, uint8_t *read, pstorage_size_t length, pstorage_size_t offset)
-{
-	load_flash(block, read, length, offset);
-	
-	NRF_LOG_PRINTF("GET_Flash %d:", length);
-	for(uint8_t i = 0; i < length; i++)
-	{
-		NRF_LOG_PRINTF("%02X ", read[i]);
-	}
-	NRF_LOG_PRINTF("Done.\r\n");
-}
-
-void erase_flash_store(void)
-{
-	clear_flash();
-}
-
-void init_flash_store(void)
-{
-	flash_init();
-	flash_regeist();
-
-	NRF_LOG_PRINTF("Flash Init OK.\r\n");
-}
-
-void test_flash_block(void)
-{
-	static uint8_t block_1[16] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
-	static uint8_t block_2[16] = {0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F};
-	static uint8_t block_3[16] = {0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F};
-	static uint8_t buffer[16*3] = {0};
-	
-	write_flash(UMBRELLA_BLOCK, block_1, 16, 0);
-	nrf_delay_ms(500);
-	write_flash(LOCK_PASSWORD_BLOCK, block_2, 16, 0);
-	nrf_delay_ms(500);
-	write_flash(AES_KEY_BLOCK, block_3, 16, 0);
-	nrf_delay_ms(500);
-	
-	read_flash(UMBRELLA_BLOCK, buffer, 16, 0);
-	read_flash(LOCK_PASSWORD_BLOCK, buffer+16, 16, 0);
-	read_flash(AES_KEY_BLOCK, buffer+32, 16, 0);
-}
-
-/*********************************************************************/
-// main.c 中使用 Flash
-
-static uint8_t change_lock_password[16] = {0};
-static uint8_t lock_password[16] = {0};
-
-void update_lock_password(void)
-{
-	write_flash(LOCK_PASSWORD_BLOCK, change_lock_password, 16, 0);
-	nrf_delay_ms(500);    // waiting flash operation done.
-	memcpy(lock_password, change_lock_password, 16);    // update new password.
-	app_trace_log(">>> Update Lock Password Done.\r\n");
-}
-
-void load_lock_password(void)
-{
-	uint8_t temp[6] = {0};
-	
-	memset(temp, 0xFF, 6);
-	
-	read_flash(LOCK_PASSWORD_BLOCK, change_lock_password, 6, 0);
-
-	if(memcmp(change_lock_password, temp, 6) != 0)
-	{
-		memcpy(lock_password, change_lock_password, 6);
-	}
-	
-	printf_data(">>> Load Lock Password: ", lock_password, 6);
-}
-
-void check_event(void)
-{
-	if(get_update_lock_password_flag())
-	{
-		set_update_lock_password_flag(false);
-		update_lock_password();
-	}
-}
-
-int main(void)
-{
-	...
-	load_lock_password();
-	for(;;)
-	{
-		check_event();
-		power_manage();
-	}
-}
-
-```
-
-### 使用 GPIO
-
-- PIN_NAME：GPIO 管脚号。
-- PIN_MODE：GPIO 模式配置。
-
-#### 输入
-|函数|说明|
-|:---|:---:|
-|nrf_gpio_cfg_input(PIN_NAME, PIN_MODE);|输入配置|
-|nrf_gpio_pin_read(DOOR_SWITCH_PIN);|读输入|
-
-
-|PIN_MODE|说明|
-|:---|:---:|
-|NRF_GPIO_PIN_NOPULL|悬空|
-|NRF_GPIO_PIN_PULLDOWN|下拉|
-|NRF_GPIO_PIN_PULLUP|上拉|
-
-#### 输出
-|函数|说明|
-|:---|:---:|
-|nrf_gpio_cfg_output(PIN_NAME);|配置输出|
-|nrf_gpio_pin_clear(PIN_NAME);|输出低电平|
-|nrf_gpio_pin_set(PIN_NAME);|输出高电平|
-
-#### 按键检测应用（单击、双击、长按）
-```c
-// button_driver start
-#include <stdint.h>
-#include <string.h>
-
-#define key_input
-
-#define N_KEY			0
-#define S_KEY			1
-#define D_KEY			2
-#define L_KEY			3
-
-#define KEY_STATE_0		0
-#define KEY_STATE_1		1
-#define KEY_STATE_2		2
-#define KEY_STATE_3		3
-
-uint8_t key_read(uint8_t key_press);
-
-uint8_t key_driver(uint8_t key_press)
-{
-	static uint8_t key_state = KEY_STATE_0, key_time = 0;
-	uint8_t key_return = N_KEY;
-
-	switch(key_state)
-	{
-		case KEY_STATE_0:
-			if(!key_press)
-			{
-				key_state = KEY_STATE_1;
-			}
-			break;
-		case KEY_STATE_1:
-			if(!key_press)
-			{
-				key_time = 0;
-				key_state = KEY_STATE_2;
-			}
-			else
-			{
-				key_state = KEY_STATE_0;
-			}
-			break;
-		case KEY_STATE_2:
-			if(key_press)
-			{
-				key_return = S_KEY;
-				key_state = KEY_STATE_0;
-			}
-			else if(++key_time >= 200) // long key timeout.
-			{
-				key_return = L_KEY;
-				key_state = KEY_STATE_3;
-			}
-			else
-			{
-			
-			}
-			break;
-		case KEY_STATE_3:
-			if(key_press)
-			{
-				key_state = KEY_STATE_0;
-			}
-			break;
-	}
-	return key_return;
-}
-
-uint8_t key_read(uint8_t key_press)
-{
-	static uint8_t key_m = KEY_STATE_0, key_time_1 = 0;
-	uint8_t key_return = N_KEY, key_temp;
-	
-	key_temp = key_driver(key_press);
-	
-	switch(key_m)
-	{
-		case KEY_STATE_0:
-			if(key_temp == S_KEY)
-			{
-				key_time_1 = 0;
-				key_m = KEY_STATE_1;
-			}
-			else
-			{
-				key_return = key_temp;
-			}
-			break;
-		case KEY_STATE_1:
-			if(key_temp == S_KEY)
-			{
-				key_return = D_KEY;
-				key_m = KEY_STATE_0;
-			}
-			else
-			{
-				if(++key_time_1 >= 50)
-				{
-					key_return = S_KEY;
-					key_m = KEY_STATE_0;
-				}
-			}
-			break;
-	}
-	return key_return;
-}
-// button_driver end
-
-// application layer start
-
-#include <stdint.h>
-#include <string.h>
-#include "bsp.h"
-#include "nrf.h"
-#include "app_trace.h"
-
-#define DOOR_SWITCH_PIN				9
-
-void door_switch_init(void);
-
-/*
-把 door_switch_event 放在 10 ms 的定时器事件中。
-*/
-void door_switch_event(void);
-
-
-void door_switch_init(void)
-{
-	nrf_gpio_cfg_input(DOOR_SWITCH_PIN, NRF_GPIO_PIN_PULLDOWN); 
-}
-
-void door_switch_event(void)
-{
-	uint8_t key_press = 0, key;
-
-	key_press = (uint8_t)nrf_gpio_pin_read(DOOR_SWITCH_PIN);
-	
-	key = key_read(key_press);
-	
-	if(S_KEY == key)
-	{
-		app_trace_log(">>> Single Key\r\n");
-	}
-	else if(D_KEY == key)
-	{
-		app_trace_log(">>> Double Key\r\n");
-	}
-	else if(L_KEY == key)
-	{
-		app_trace_log(">>> Long Key\r\n");
-	}
-}
-// application layer end
-```
