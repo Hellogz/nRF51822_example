@@ -340,6 +340,9 @@ mergehex.exe -m without_def.hex bootload.hex firmware.hex
 
 ### 16KB RAM 的 Bootload RAM 修改
 
+- APP RAM base address: 0x20000000.
+- SoftDevice use RAM: 0x2C00.
+
 |名称|Start|Size|选择|
 |---|---|---|---|
 |IROM1|0x3C000|0x3C00|Startup|
@@ -347,10 +350,14 @@ mergehex.exe -m without_def.hex bootload.hex firmware.hex
 |IRMA2|0x20003F80|0x80|NoInit|
 
 ### 16KB 使用 DFU 的 Project 设置
+
+- IROM1 is dual bank:132KB / 2 = 66KB = 0x10800 Byte.
+- IRAM1 is 16KB - 0x2080 Byte = 0x1F80 Byte.
+
 |名称|Start|Size|选择|
 |---|---|---|---|
-|IROM1|0x1B000|0x25000|Startup|
-|IRAM1|0x20002080|0x5F80|None|
+|IROM1|0x1B000|0x10800|Startup|
+|IRAM1|0x20002080|0x1F80|None|
 
 ### Bootload 添加看门狗
 
