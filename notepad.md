@@ -519,4 +519,12 @@ static void advertising_init(void)
 - advdata.flags = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE; 并且APP_ADV_TIMEOUT_IN_SECONDS = 0； 这样就广播永远不会停止。
 - advdata.flags = BLE_GAP_ADV_FLAGS_LE_ONLY_LIMITED_DISC_MODE模式的时候，表示广播 APP_ADV_TIMEOUT_IN_SECONDS 秒，系统会产生蓝牙超时时间，并且不再广播。
 
+### BLE 广播分析
 
+- [参考资料](http://blog.chinaunix.net/uid-28852942-id-5176579.html)
+- BLE addr LSB Format。
+- max 31 Byte, but 2 byte use to length and type, so can use 29 Byte.
+- adv_data_encode 方法可以查看到所有的广播数据的编码
+- Advertising Address
+- Advertising Data
+	flags, 16 bit uuids (complete), manufacturer specific data, local name...
