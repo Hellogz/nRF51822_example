@@ -490,35 +490,6 @@ static uint32_t device_manager_evt_handler(dm_handle_t const * p_handle,
 	}
 ```
 
-### 不间断广播
-```c
-static void advertising_init(void)
-{
-    uint32_t               err_code;
-    ble_advdata_t          advdata;
-    ble_adv_modes_config_t options;
-
-    // Build advertising data struct to pass into @ref ble_advertising_init.
-    memset(&advdata, 0, sizeof(advdata));
-
-    advdata.name_type               = BLE_ADVDATA_FULL_NAME;
-    advdata.include_appearance      = true;
-    advdata.flags                   = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
-    advdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);
-    advdata.uuids_complete.p_uuids  = m_adv_uuids;
-
-    memset(&options, 0, sizeof(options));
-    options.ble_adv_fast_enabled  = true;
-    options.ble_adv_fast_interval = APP_ADV_INTERVAL;
-    options.ble_adv_fast_timeout  = APP_ADV_TIMEOUT_IN_SECONDS;
-
-    err_code = ble_advertising_init(&advdata, NULL, &options, on_adv_evt, NULL);
-    APP_ERROR_CHECK(err_code);
-}
-```
-- advdata.flags = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE; 并且APP_ADV_TIMEOUT_IN_SECONDS = 0； 这样就广播永远不会停止。
-- advdata.flags = BLE_GAP_ADV_FLAGS_LE_ONLY_LIMITED_DISC_MODE模式的时候，表示广播 APP_ADV_TIMEOUT_IN_SECONDS 秒，系统会产生蓝牙超时时间，并且不再广播。
-
 ### BLE 广播分析
 
 - [参考资料](http://blog.chinaunix.net/uid-28852942-id-5176579.html)
@@ -549,4 +520,98 @@ static void advertising_init(void)
 #define PSTORAGE_MIN_BLOCK_SIZE     0x0010 // 最小字节 16 byte，最大是 1Kbyte。
 #define PSTORAGE_MAX_BLOCK_SIZE     PSTORAGE_FLASH_PAGE_SIZE	// 最大是 1Kbyte。
 ```
+
+### BLE 连接参数
+
+- MIN_CONN_INTERVAL 最小连接间隔
+- MAX_CONN_INTERVAL 最大连接间隔
+- SLAVE_LATENCY     从机潜伏次数，意思为:"当无有效数据传输的时候，允许从机跳过的连接事件的次数"
+- CONN_SUP_TIMEOUT  连接超时时间
+- BLE蓝牙的通讯值通过连接事件来完成的，其中连接事件一直伴随着整个蓝牙连接的周期，不管这其中有没有数据要传输，连接事件一直在周期的产生，这个周期也就决定了蓝牙通讯的速率，周期短，通讯速率就快，相应的功耗就高，连接周期长，通讯速率就慢，功耗就低，用户应该根据自己的需求来设置合理的值，在功耗与速率之间寻求一个平衡。 
+
+ ``` c
+ #define MIN_CONN_INTERVAL               MSEC_TO_UNITS(20, UNIT_1_25_MS)             /**< Minimum acceptable connection interval (20 ms), Connection interval uses 1.25 ms units. */
+#define MAX_CONN_INTERVAL               MSEC_TO_UNITS(75, UNIT_1_25_MS)             /**< Maximum acceptable connection interval (75 ms), Connection interval uses 1.25 ms units. */
+#define SLAVE_LATENCY                   0                                           /**< Slave latency. */
+#define CONN_SUP_TIMEOUT                MSEC_TO_UNITS(4000, UNIT_10_MS)             /**< Connection supervisory timeout (4 seconds), Supervision Timeout uses 10 ms units. */
+
+ ```
+ 
+ #### iOS 的蓝牙连接规范
+ 
+The connection parameter request may be rejected if it does not comply with all of these rules: 
+Interval Max * (Slave Latency + 1) ≤ 2 seconds 
+Interval Min ≥ 20 ms 
+Interval Min + 20 ms ≤ Interval Max 
+Slave Latency ≤ 4 
+connSupervisionTimeout ≤ 6 seconds 
+Interval Max * (Slave Latency + 1) * 3 < connSupervisionTimeout
+
+### BLE 广播时间参数
+
+```c
+#define DEVICE_NAME                          "ADV_NAME" 
+#define	COMPANY_IDENTIFIER		     0x0201	/* Bluetooth sig company identifier */
+#define BLE_UUID_WECHAT_SERVICE		     0xFEE7
+#define APP_ADV_INTERVAL                     40         /**< The advertising interval (in units of 0.625 ms. This value corresponds to 25 ms). */
+#define APP_ADV_TIMEOUT_IN_SECONDS           0          /**< The advertising timeout in units of seconds. */
+#define MANUF_DATA_LEN                       12
+
+static void advertising_init(void)
+{
+    uint32_t               err_code;
+    ble_advdata_t          advdata;
+    
+    // Variables used for manufacturer specific data
+    ble_advdata_manuf_data_t adv_manuf_data;
+    uint8_array_t            adv_manuf_data_array;
+    uint8_t                  adv_manuf_data_data[MANUF_DATA_LEN] = {0};
+	
+    ble_uuid_t adv_uuids[] =
+    {
+        {BLE_UUID_WECHAT_SERVICE,         BLE_UUID_TYPE_BLE}
+    };
+
+    // Build advertising data struct to pass into @ref ble_advertising_init.
+    memset(&advdata, 0, sizeof(advdata));
+
+    advdata.name_type               = BLE_ADVDATA_FULL_NAME;
+    advdata.include_appearance      = false;
+    advdata.include_ble_device_addr = true;	// advertising include device addr.
+    advdata.flags                   = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
+    advdata.uuids_complete.uuid_cnt = sizeof(adv_uuids) / sizeof(adv_uuids[0]);
+    advdata.uuids_complete.p_uuids  = adv_uuids;
+	
+    // Configuration of manufacturer specific data
+    adv_manuf_data_data[0] = 0x01;
+    ... 
+    adv_manuf_data_data[11] = 0x0B;
+	
+    adv_manuf_data_array.p_data = adv_manuf_data_data;
+    adv_manuf_data_array.size = sizeof(adv_manuf_data_data);
+    
+    adv_manuf_data.company_identifier = COMPANY_IDENTIFIER;
+    adv_manuf_data.data = adv_manuf_data_array;
+    
+    advdata.p_manuf_specific_data = &adv_manuf_data;
+    // ---------------------------------------------
+    options.ble_adv_fast_enabled  = BLE_ADV_FAST_ENABLED;
+    options.ble_adv_fast_interval = APP_ADV_INTERVAL;
+    options.ble_adv_fast_timeout  = APP_ADV_TIMEOUT_IN_SECONDS;
+
+    err_code = ble_advertising_init(&advdata, NULL, &options, on_adv_evt, NULL);
+    APP_ERROR_CHECK(err_code);
+}
+```
+
+- APP_ADV_INTERVAL 广播的间隔，单位为0.625ms，设置表示广播间隔大，功耗低，反正，相反。
+- APP_ADV_TIMEOUT_IN_SECONDS 广播超时时间，单位为s ，这个参数与 ble_advdata_t.flags 这个参数有关系。
+
+#### 不间断广播
+
+- advdata.flags = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE; 并且APP_ADV_TIMEOUT_IN_SECONDS = 0； 这样就广播永远不会停止。
+- advdata.flags = BLE_GAP_ADV_FLAGS_LE_ONLY_LIMITED_DISC_MODE 模式的时候，表示广播 APP_ADV_TIMEOUT_IN_SECONDS 秒，系统会产生蓝牙超时时间，并且不再广播。
+
+
+
 
