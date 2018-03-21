@@ -527,7 +527,7 @@ static uint32_t device_manager_evt_handler(dm_handle_t const * p_handle,
 - MAX_CONN_INTERVAL 最大连接间隔
 - SLAVE_LATENCY     从机潜伏次数，意思为:"当无有效数据传输的时候，允许从机跳过的连接事件的次数"
 - CONN_SUP_TIMEOUT  连接超时时间
-- BLE蓝牙的通讯值通过连接事件来完成的，其中连接事件一直伴随着整个蓝牙连接的周期，不管这其中有没有数据要传输，连接事件一直在周期的产生，这个周期也就决定了蓝牙通讯的速率，周期短，通讯速率就快，相应的功耗就高，连接周期长，通讯速率就慢，功耗就低，用户应该根据自己的需求来设置合理的值，在功耗与速率之间寻求一个平衡。 
+- BLE 蓝牙的通讯值通过连接事件来完成的，其中连接事件一直伴随着整个蓝牙连接的周期，不管这其中有没有数据要传输，连接事件一直在周期的产生，这个周期也就决定了蓝牙通讯的速率，周期短，通讯速率就快，相应的功耗就高，连接周期长，通讯速率就慢，功耗就低，用户应该根据自己的需求来设置合理的值，在功耗与速率之间寻求一个平衡。 
 
  ``` c
  #define MIN_CONN_INTERVAL               MSEC_TO_UNITS(20, UNIT_1_25_MS)             /**< Minimum acceptable connection interval (20 ms), Connection interval uses 1.25 ms units. */
@@ -539,13 +539,51 @@ static uint32_t device_manager_evt_handler(dm_handle_t const * p_handle,
  
  #### iOS 的蓝牙连接规范
  
-The connection parameter request may be rejected if it does not comply with all of these rules: 
-Interval Max * (Slave Latency + 1) ≤ 2 seconds 
-Interval Min ≥ 20 ms 
-Interval Min + 20 ms ≤ Interval Max 
-Slave Latency ≤ 4 
-connSupervisionTimeout ≤ 6 seconds 
-Interval Max * (Slave Latency + 1) * 3 < connSupervisionTimeout
++ The connection parameter request may be rejected if it does not comply with all of these rules: 
+- Interval Max * (Slave Latency + 1) ≤ 2 seconds 
+- Interval Min ≥ 20 ms 
+- Interval Min + 20 ms ≤ Interval Max 
+- Slave Latency ≤ 4 
+- connSupervisionTimeout ≤ 6 seconds 
+- Interval Max * (Slave Latency + 1) * 3 < connSupervisionTimeout
+- 蓝牙在连接之初，采用的是默认的连接参数，从机可以在连接建立之后在向主机发送更新连接参数的请求。可以在 gap_params_init 方法中设置。
+- BLE 协议里 InterVal 的范围是 7.5ms - 32s，如果从机请求修改的参数不符合该规范，iOS 会拒绝更新参数。
+
+``` c
+/**@brief Function for the GAP initialization.
+ *
+ * @details This function will set up all the necessary GAP (Generic Access Profile) parameters of 
+ *          the device. It also sets the permissions and appearance.
+ */
+static void gap_params_init(uint16_t min_conn_interval, uint16_t max_conn_interval, uint16_t slave_latency, uint16_t conn_sup_timeout)
+{
+    uint32_t                err_code;
+    ble_gap_conn_params_t   gap_conn_params;
+    ble_gap_conn_sec_mode_t sec_mode;
+
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
+    
+    err_code = sd_ble_gap_device_name_set(&sec_mode,
+                                          (const uint8_t *) DEVICE_NAME,
+                                          strlen(DEVICE_NAME));
+    APP_ERROR_CHECK(err_code);
+
+    memset(&gap_conn_params, 0, sizeof(gap_conn_params));
+
+    gap_conn_params.min_conn_interval = min_conn_interval;
+    gap_conn_params.max_conn_interval = max_conn_interval;
+    gap_conn_params.slave_latency     = slave_latency;
+    gap_conn_params.conn_sup_timeout  = conn_sup_timeout;
+
+    // Set the connection params in stack
+    err_code = sd_ble_gap_ppcp_set(&gap_conn_params);
+    APP_ERROR_CHECK(err_code);
+										  
+    // set Radio output power
+    err_code = sd_ble_gap_tx_power_set(config_get_ble_tx_mode());
+    APP_ERROR_CHECK(err_code);									  
+}
+```
 
 ### BLE 广播时间参数
 
