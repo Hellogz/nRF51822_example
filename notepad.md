@@ -528,3 +528,25 @@ static void advertising_init(void)
 - Advertising Address
 - Advertising Data
 	flags, 16 bit uuids (complete), manufacturer specific data, local name...
+	
+### DFU 保存 App Data
+
+- DFU 在升级时默认会擦除掉 App 代码起始地址到 DFU BootLoader 代码起始地址之间的全部区域，就包括了 App Data。
+- 避免方法是在 Bootloader 工程中的 dfu_types.h 的一个宏定义中修改即可, 改为 CODE_PAGE_SIZE * 3
+
+``` c
+#ifndef DFU_APP_DATA_RESERVED
+#define DFU_APP_DATA_RESERVED           CODE_PAGE_SIZE * 0  /**< Size of Application Data that must be preserved between application updates. This value must be a multiple of page size. Page size is 0x400 (1024d) bytes, thus this value must be 0x0000, 0x0400, 0x0800, 0x0C00, 0x1000, etc. */
+#endif
+```
+
+- 实际情况是，在使用 pstorage 注册了 16x16 Byte，占用 2 个 PSTORAGE_FLASH_PAGE_SIZE（pstorage_register 方法中的 page_count 计算而知），所以要保存 App Data 不被清除，需要定义 CODE_PAGE_SIZE * 3 的空间大小，其中有 1 个 PSTORAGE_FLASH_PAGE_SIZE 大小是 Swap 占用了（可能是）。
+- Application 工程的 pstorage_platform.h 的几个参数定义
+
+``` c
+#define PSTORAGE_NUM_OF_PAGES       2	// 2 页，根据需要使用的大小来定义
+#define PSTORAGE_MAX_APPLICATIONS   1	// 不清楚用途
+#define PSTORAGE_MIN_BLOCK_SIZE     0x0010 // 最小字节 16 byte，最大是 1Kbyte。
+#define PSTORAGE_MAX_BLOCK_SIZE     PSTORAGE_FLASH_PAGE_SIZE	// 最大是 1Kbyte。
+```
+
