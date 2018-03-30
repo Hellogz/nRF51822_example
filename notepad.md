@@ -651,5 +651,36 @@ static void advertising_init(void)
 - advdata.flags = BLE_GAP_ADV_FLAGS_LE_ONLY_LIMITED_DISC_MODE 模式的时候，表示广播 APP_ADV_TIMEOUT_IN_SECONDS 秒，系统会产生蓝牙超时时间，并且不再广播。
 
 
+#### 休眠和唤醒
 
+##### 唤醒方式
+- LPCOMP 模块产生的 ANADETECT signal。
+- 复位
+- GPIO 产生 DETECT signal。
+
+``` c
+
+#define GPIO_PIN_CNF_SENSE_Disabled (0x00UL) /*!< Disabled. */
+#define GPIO_PIN_CNF_SENSE_High     (0x02UL) /*!< Wakeup on high level. */
+#define GPIO_PIN_CNF_SENSE_Low      (0x03UL) /*!< Wakeup on low level. */
+
+// GPIO 产生 DETECT signal 配置方法
+// Prepare wakeup GPIO.
+uint32_t new_cnf = NRF_GPIO->PIN_CNF[GPIO_PIN];
+uint32_t new_sense = GPIO_PIN_CNF_SENSE_Low;	// 唤醒方式
+new_cnf &= ~GPIO_PIN_CNF_SENSE_Msk;
+new_cnf |= (new_sense << GPIO_PIN_CNF_SENSE_Pos);
+NRF_GPIO->PIN_CNF[GPIO_PIN] = new_cnf;
+
+```
+#### 休眠
+- 调用协议栈的 sd_power_system_off 方法进入休眠。
+
+``` c
+
+// Go to system-off mode (this function will not return; wakeup will cause a reset).
+uint32_t err_code = sd_power_system_off();
+APP_ERROR_CHECK(err_code);
+
+```
 
