@@ -684,3 +684,43 @@ APP_ERROR_CHECK(err_code);
 
 ```
 
+#### UART 错误分析
+- 官方代码在串口出现错误时会引起设备重启。
+``` c
+void uart_event_handle(app_uart_evt_t * p_event)
+{
+    uint8_t rx_byte = 0;
+
+    switch (p_event->evt_type)
+    {
+        case APP_UART_DATA_READY:
+            UNUSED_VARIABLE(app_uart_get(&rx_byte));
+            break;
+        case APP_UART_COMMUNICATION_ERROR:
+            APP_ERROR_HANDLER(p_event->data.error_communication);	// 串口出现错误时会引起设备重启
+            break;
+```
+- 一般可能会出现的错误：
+``` c
+
+APP_UART_COMMUNICATION_ERROR = p_event->data.error_communication;
+
+> APP_UART_COMMUNICATION_ERROR: 0x01
+溢出错误
+接收到一个起始位，而前一个数据仍位于RXD中。
+（以前的数据丢失。）
+
+> APP_UART_COMMUNICATION_ERROR: 0x02
+奇偶校验错误
+如果启用了硬件奇偶校验，则接收到奇偶校验错误的字符。
+
+> APP_UART_COMMUNICATION_ERROR: 0x04
+Framing error occurred 发生成帧错误
+在接收到字符中的所有位后，在串行数据输入中未检测到有效的停止位
+
+> APP_UART_COMMUNICATION_ERROR: 0x08
+Break condition
+串行数据输入为'0'的时间长于数据帧的长度。 （数据帧长度为10位，不带校验位，11位带校验位）。
+``` 
+
+- Framing error occurred 错误分析，能产生该错误的情况：当上位机发送数据，而设备串口正在初始化，设备正好收到了一个不完整的帧，所以产生 Framing error occurred。如果设备串口初始化好前，上位机不发送数据，则不会出现该错误。
