@@ -724,3 +724,71 @@ Break condition
 ``` 
 
 - Framing error occurred 错误分析，能产生该错误的情况：当上位机发送数据，而设备串口正在初始化，设备正好收到了一个不完整的帧，所以产生 Framing error occurred。如果设备串口初始化好前，上位机不发送数据，则不会出现该错误。
+
+#### [Nordic's Secure DFU bootloader](https://devzone.nordicsemi.com/b/blog/posts/getting-started-with-nordics-secure-dfu-bootloader)
+
+##### 0.环境准备
+
+- nRF5_SDK_12 及以上版本
+- Install version [4.9-2015-q3-update of the GCC compiler toolchain for ARM](https://launchpad.net/gcc-arm-embedded/+download). 
+- make 工具 MinGW, install [MSYS](https://sourceforge.net/projects/mingw/files/MSYS/Base/msys-core/msys-1.0.11/MSYS-1.0.11.exe/download) 
+
+##### 1.生成密钥
+
+- Nordic提供 [nRFutil.exe](https://github.com/NordicSemiconductor/pc-nrfutil/releases) 工具来生成这些密钥，直接下载 nRFutil.exe 文件。
+- 生成你自己的私钥，生成 DFU.zip 包时使用。
+``` c
+nrfutil.exe keys generate private.key
+```
+- 根据私钥生成公钥，编译 bootloader_secure 工程时使用。
+``` c
+nrfutil.exe keys display --key pk --format code private.key --out_file public_key.c
+```
+
+##### 2.构建引导程序
+
+###### 编译 uECC 库，生成 micro_ecc_lib_nrf52.lib
+
+- 把 [uECC](https://github.com/kmackay/micro-ecc.git) 库克隆到 SDKFolder\external\micro-ecc\ 目录下。
+- 在 SDKFolder\external\micro-ecc\nrf52_keil\armgcc 目录下 make，这里使用的是 nRF52 keil 环境，不同环境在不同目录下 make。
+
+###### 编译 bootloader_secure 工程
+
+- bootloader_secure 工程里把 dfu_public_key.c 删掉，在工程里添加生成的 public_key.c 文件。然后编译，编译通过。
+- 如果使用新的密钥，要重新生成密钥，然后工程里替换新的 public_key.c 文件，并重新编译工程。
+
+##### 3.生成 DFU.zip 包
+- 使用 [nRFutil.exe](https://github.com/NordicSemiconductor/pc-nrfutil/releases) 工具生成，命令如下。
+
+``` c
+nrfutil pkg generate --hw-version 52 --application-version 1 --application nrf52832_xxaa.hex --sd-req 0x98 --key-file private.key app_dfu_package.zip
+
+bat 脚本
+
+@echo off
+set /p package_name=input name.zip for zip package:
+nrfutil pkg generate --hw-version 52 --application-version 1 --application nrf52832_xxaa.hex --sd-req 0x98 --key-file private.key %package_name%
+pause
+
+```
+
+- [sd-req 版本说明](https://github.com/NordicSemiconductor/pc-nrfutil/blob/master/README.md)
+
+|SoftDevice	|FWID (sd-req)|
+|:---:|:---|
+|s130_nrf51_1.0.0|0x67|
+|s130_nrf51_2.0.0|0x80|
+|s132_nrf52_2.0.0|0x81|
+|s130_nrf51_2.0.1|0x87|
+|s132_nrf52_2.0.1|0x88|
+|s132_nrf52_3.0.0|0x8C|
+|s132_nrf52_3.1.0|0x91|
+|s132_nrf52_4.0.0|0x95|
+|s132_nrf52_4.0.2|0x98|
+|s132_nrf52_4.0.3|0x99|
+|s132_nrf52_4.0.4|0x9E|
+|s132_nrf52_4.0.5|0x9F|
+|s132_nrf52_5.0.0|0x9D|
+|s132_nrf52_5.1.0|0xA5|
+
+
