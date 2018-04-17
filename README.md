@@ -5,6 +5,11 @@
 
 ---
 
+#### BMA423_STS3x_Example.c
+
+- BMA423 获取步数和加速度 Example。
+- STS3x 获取温度 Example。
+
 #### command_control_main.c
 
 - 上位机发送 0x00 到开发板，开发板每隔 0.5 秒，发送一个递增的 unsigned int 数据，数据从 0 开始，最大值 100。达到最大值后保持不变。 
