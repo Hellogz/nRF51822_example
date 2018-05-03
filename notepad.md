@@ -791,4 +791,19 @@ pause
 |s132_nrf52_5.0.0|0x9D|
 |s132_nrf52_5.1.0|0xA5|
 
+#### Enable DCDC
+-  9.7 mA peak RX, 8 mA peak TX (0 dBm) with DC/DC
+- 硬件使用 DCDC
+![](http://ww1.sinaimg.cn/large/6c1ebe8egy1fqxzfvacpoj20hm0eqgnd.jpg)
+- 软件使能 DCDC。
+``` c
+...
+    ble_stack_init();
+	
+    if(NRF_SUCCESS != sd_power_dcdc_mode_set(NRF_POWER_DCDC_ENABLE)
+    {
+    	NRF_LOG_PRINTF("sd_power_dcdc_mode_set failed\r\n");
+    }
+...
 
+```
