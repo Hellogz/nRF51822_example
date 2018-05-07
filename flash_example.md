@@ -8,11 +8,12 @@
 
 #### 遇到过的问题：
 - 可参考下面代码例程。
-- Q： 写入 Flash 的数据与读取 Flash 的数据不一致？
+- Q：写入 Flash 的数据与读取 Flash 的数据不一致？
 - A：写入的 Flash 数据必须为 static 的。写入 Flash 过程中会拷贝数据，如果是临时数据则会出现该问题。
 - Q：写入 Flash 后马上读取 Flash，导致设备复位？
 - A：可以通过设置标志在 main 函数中来进行 Flash 的操作，尽量不要在数据处理函数中直接操作 Flash，因为这样操作可能会出错，导致设备复位。
-
+- Q：DFU 升级固件后 Flash 存储的数据被擦除了，怎么办？
+- A：更具 APP 里使用的 Flash 大小来修改 DFU 工程中的 pstorage_platform.h 里的 PSTORAGE_NUM_OF_PAGES 大小。
 
 ```c
 #include <stdint.h>
