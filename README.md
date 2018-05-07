@@ -5,6 +5,10 @@
 
 ---
 
+#### pwm_example.c	
+
+- pwm libraries example.
+
 #### BMA423_STS3x_Example.c
 
 - BMA423 获取步数和加速度 Example。
