@@ -808,3 +808,34 @@ pause
     ...
 
 ```
+
+#### 自定义广播数据中的 MAC 地址
+``` c
+
+/**@defgroup BLE_GAP_ADDR_TYPES GAP Address types
+ * @{ */
+#define BLE_GAP_ADDR_TYPE_PUBLIC                        0x00 /**< Public address. */
+#define BLE_GAP_ADDR_TYPE_RANDOM_STATIC                 0x01 /**< Random Static address. */
+#define BLE_GAP_ADDR_TYPE_RANDOM_PRIVATE_RESOLVABLE     0x02 /**< Private Resolvable address. */
+#define BLE_GAP_ADDR_TYPE_RANDOM_PRIVATE_NON_RESOLVABLE 0x03 /**< Private Non-Resolvable address. */
+/**@} */
+
+/**@defgroup BLE_GAP_ADDR_CYCLE_MODES GAP Address cycle modes
+ * @{ */
+#define BLE_GAP_ADDR_CYCLE_MODE_NONE      0x00 /**< Set addresses directly, no automatic address cycling. */
+#define BLE_GAP_ADDR_CYCLE_MODE_AUTO      0x01 /**< Automatically generate and update private addresses. */
+/** @} */
+
+static void gap_params_init(void)
+{
+	uint32_t			err_code;
+	ble_gap_addr_t			gap_addr;
+	
+	gap_addr.addr_type = BLE_GAP_ADDR_TYPE_PUBLIC;	// change mac address type is here
+	memset(gap_addr.addr, 0, 6);			// change mac address is here
+	err_code = sd_ble_gap_address_set(BLE_GAP_ADDR_CYCLE_MODE_NONE, &gap_addr);
+	APP_ERROR_CHECK(err_code);
+	
+	...
+}
+```
