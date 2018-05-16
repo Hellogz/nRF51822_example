@@ -841,15 +841,15 @@ static void gap_params_init(void)
 ```
 
 #### Beacon Advertising
-- 广播包格式
+##### 广播包格式
 ![](http://ww1.sinaimg.cn/large/6c1ebe8ely1frd75v1j6gj20t604zjsc.jpg)
 
 - Data Payload 字段是有一个或多个 \[length, type, data\] 数组构成.
 
-- [Apple’s iBeacon 包格式](http://www.argenox.com/a-ble-advertising-primer/)
+##### [Apple’s iBeacon 包格式](http://www.argenox.com/a-ble-advertising-primer/)
 ![](http://ww1.sinaimg.cn/large/6c1ebe8ely1frd71xhzm1j20ns05w3yx.jpg)
 
-- Flags Advertising Data Type
+###### Flags Advertising Data Type
 This packet has data type 0x01 indicating various flags. The length is 2 because there are two bytes, the data type and the actual flag value. The flag value has several bits indicating the capabilities of the iBeacon:
 
 Bit0 – Indicates LE Limited Discoverable Mode
@@ -864,7 +864,7 @@ Bit4 – Indicates whether LE and BR/EDR Host operates simultaneously
 
 Most iBeacons are single mode devices BR/EDR is not used. For iBeacons, General discoverability mode is used.
 
-- iBeacon Data Type
+###### iBeacon Data Type
 
 The most important advertisement data type is the second one. The first byte indicates the number of bytes, 0x1A for a total of 26 bytes, 25 for payload and one for the type. The AD type is the Manufacturer Specific 0xFF, so Apple has defined their own Advertisement Data.
 
