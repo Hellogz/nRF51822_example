@@ -839,3 +839,43 @@ static void gap_params_init(void)
 	...
 }
 ```
+
+#### Beacon Advertising
+- 广播包格式
+![](http://ww1.sinaimg.cn/large/6c1ebe8ely1frd75v1j6gj20t604zjsc.jpg)
+
+- Data Payload 字段是有一个或多个 \[length, type, data\] 数组构成.
+
+- [Apple’s iBeacon 包格式](http://www.argenox.com/a-ble-advertising-primer/)
+![](http://ww1.sinaimg.cn/large/6c1ebe8ely1frd71xhzm1j20ns05w3yx.jpg)
+
+- Flags Advertising Data Type
+This packet has data type 0x01 indicating various flags. The length is 2 because there are two bytes, the data type and the actual flag value. The flag value has several bits indicating the capabilities of the iBeacon:
+
+Bit0 – Indicates LE Limited Discoverable Mode
+
+Bit1 – Indicates LE General Discoverable Mode
+
+Bit 2 – Indicates whether BR/EDR is supported. This is used if your iBeacon is Dual Mode device
+
+Bit3 – Indicates whether LE and BR/EDR Controller operates simultaneously
+
+Bit4 – Indicates whether LE and BR/EDR Host operates simultaneously
+
+Most iBeacons are single mode devices BR/EDR is not used. For iBeacons, General discoverability mode is used.
+
+- iBeacon Data Type
+
+The most important advertisement data type is the second one. The first byte indicates the number of bytes, 0x1A for a total of 26 bytes, 25 for payload and one for the type. The AD type is the Manufacturer Specific 0xFF, so Apple has defined their own Advertisement Data.
+
+The first two bytes indicate the company identifier 0x4C00. You can see identifiers for other companies as well.
+
+The second two bytes are beacon advertisement indicators. These are always 0x02 and 0x15.
+
+The critical fields are the iBeacon proximity UUID which uniquely identifies the iBeacon followed by a major and minor fields.
+
+Each iBeacon has to have a unique UUID so that an iPhone app can know exactly where it is located relative to one or more iBeacons.
+
+Finally, there is also a 2’s complement of the calibrated TX power that can be used to improve location accuracy knowing the power level of the beacon.
+
+There’s nothing stopping you from creating your own beacons with a different manufacturer format. The problem is that Apple specifically detects iBeacons with the particular format, so there won’t be any interoperability.
