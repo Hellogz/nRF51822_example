@@ -730,7 +730,8 @@ Break condition
 ##### 0.环境准备
 
 - nRF5_SDK_12 及以上版本
-- Install version [4.9-2015-q3-update of the GCC compiler toolchain for ARM](https://launchpad.net/gcc-arm-embedded/+download). 
+- SDK 11 use: Install version [4.9-2015-q3-update of the GCC compiler toolchain for ARM](https://launchpad.net/gcc-arm-embedded/+download). 
+- SDK 15 use: Install version [7-2017-q4-update of the GCC compiler toolchain for ARM](https://developer.arm.com/open-source/gnu-toolchain/gnu-rm/downloads#).  
 - make 工具 MinGW, install [MSYS](https://sourceforge.net/projects/mingw/files/MSYS/Base/msys-core/msys-1.0.11/MSYS-1.0.11.exe/download) 
 
 ##### 1.生成密钥
@@ -747,10 +748,14 @@ nrfutil.exe keys display --key pk --format code private.key --out_file public_ke
 
 ##### 2.构建引导程序
 
-###### 编译 uECC 库，生成 micro_ecc_lib_nrf52.lib
+###### 编译 uECC 库，生成 micro_ecc_lib_nrf52.lib, SDK11
 
 - 把 [uECC](https://github.com/kmackay/micro-ecc.git) 库克隆到 SDKFolder\external\micro-ecc\ 目录下。
 - 在 SDKFolder\external\micro-ecc\nrf52_keil\armgcc 目录下 make，这里使用的是 nRF52 keil 环境，不同环境在不同目录下 make。
+
+###### 编译 uECC 库，生成 micro_ecc_lib_nrf52.lib, SDK15
+
+- 在 SDKFolder\external\micro-ecc\ 目录下，运行 build_all.bat(windows) 或者 build_all.sh(linux or Mac)。
 
 ###### 编译 bootloader_secure 工程
 
