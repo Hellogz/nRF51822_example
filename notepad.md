@@ -500,6 +500,35 @@ static uint32_t device_manager_evt_handler(dm_handle_t const * p_handle,
 - Advertising Data
 	flags, 16 bit uuids (complete), manufacturer specific data, local name...
 	
+- [What's the maximum length of a BLE Manufacturer Specific Data AD?](https://stackoverflow.com/questions/33535404/whats-the-maximum-length-of-a-ble-manufacturer-specific-data-ad)	
+``` c	
+From the spec- Supplement to the Bluetooth Core Specification Version 4 Part A 1.4:
+
+1.4.1 Description
+
+The Manufacturer Specific data type is used for manufacturer specific data. The first two data octets shall contain a company identifier code from the Assigned Numbers - Company Identifiers document. The interpretation of any other octets within the data shall be defined by the manufacturer specified by the company identifier.
+
+1.4.2 Format Data Type <>
+
+Description: Size: 2 or more octets The first 2 octets contain the Company Identifier Code followed by additional manufacturer specific data
+
+Table 1.4: Manufacturer Specific Data Type
+
+So there is no limit except the advertising packet length itself, which is 31 bytes per advertising data and another 31 bytes for scan response.
+
+There is the requirement for the 3 bytes at the beginning of advertising data that have the Flags ad type (required for any non-zero length advertising, see Core V4.0 Volume 3 Part C 11.1.3), reducing your advertising data length by 3.
+
+Then there is the manufacturing ad type flags and length that get added to your manufacturing data, minus another 2 bytes. This leaves you with:
+
+26 bytes in the advertising data or
+29 bytes in the scan response
+for manufacturing data itself (although two of those bytes should be used for specifying the Company Identifier Code) which would bring it to:
+
+24 bytes of actual data in the advertising data or
+27 bytes in the scan response.
+```
+	
+	
 ### DFU 保存 App Data
 
 - DFU 在升级时默认会擦除掉 App 代码起始地址到 DFU BootLoader 代码起始地址之间的全部区域，就包括了 App Data。
