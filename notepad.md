@@ -914,3 +914,18 @@ Each iBeacon has to have a unique UUID so that an iPhone app can know exactly wh
 Finally, there is also a 2’s complement of the calibrated TX power that can be used to improve location accuracy knowing the power level of the beacon.
 
 There’s nothing stopping you from creating your own beacons with a different manufacturer format. The problem is that Apple specifically detects iBeacons with the particular format, so there won’t be any interoperability.
+
+#### Apple Notification Center Service(ANCS)
+##### 基本过程
+1. 设备与手机连接后，设备通过 ble_ancs_c_notif_source_notif_enable 方法，使能通知源，此时设备与手机会进行配对；
+2. 之后手机收到消息后会通知设备，设备的 BLE_ANCS_C_EVT_NOTIF 事件；
+3. 通过 ble_ancs_c_request_attrs 方法，可获取通知的属性内容；
+4. 通过 BLE_ANCS_C_EVT_NOTIF_ATTRIBUTE 事件获取属性内容；
+
+1. The application can now subscribe to iOS notifications using ble_ancs_c_notif_source_notif_enable. 
+2. They arrive in the BLE_ANCS_C_EVT_NOTIF event. 
+3. ble_ancs_c_request_attrs can be used to request attributes for the notifications. 
+4. They arrive in the BLE_ANCS_C_EVT_NOTIF_ATTRIBUTE event.
+
+![ANCS](http://ww1.sinaimg.cn/large/6c1ebe8ely1g1xihnn9s1j20p00dhq2v.jpg)
+
