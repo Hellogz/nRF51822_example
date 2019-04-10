@@ -915,17 +915,29 @@ Finally, there is also a 2’s complement of the calibrated TX power that can be
 
 There’s nothing stopping you from creating your own beacons with a different manufacturer format. The problem is that Apple specifically detects iBeacons with the particular format, so there won’t be any interoperability.
 
-#### Apple Notification Center Service(ANCS)
-##### 基本过程
+## Apple Notification Center Service(ANCS)
+#### 基本过程
 1. 设备与手机连接后，设备通过 ble_ancs_c_notif_source_notif_enable 方法，使能通知源，此时设备与手机会进行配对；
 2. 之后手机收到消息后会通知设备，设备的 BLE_ANCS_C_EVT_NOTIF 事件；
 3. 通过 ble_ancs_c_request_attrs 方法，可获取通知的属性内容；
 4. 通过 BLE_ANCS_C_EVT_NOTIF_ATTRIBUTE 事件获取属性内容；
 
-1. The application can now subscribe to iOS notifications using ble_ancs_c_notif_source_notif_enable. 
-2. They arrive in the BLE_ANCS_C_EVT_NOTIF event. 
-3. ble_ancs_c_request_attrs can be used to request attributes for the notifications. 
-4. They arrive in the BLE_ANCS_C_EVT_NOTIF_ATTRIBUTE event.
+#### Detailed Description
+Apple Notification Center Service Client Module.
+
+Disclaimer: This client implementation of the Apple Notification Center Service can be changed at any time by Nordic Semiconductor ASA. Server implementations such as the ones found in iOS can be changed at any time by Apple and may cause this client implementation to stop working.
+
+This module implements the Apple Notification Center Service (ANCS) client. This client can be used as a Notification Consumer (NC) that receives data notifications from a Notification Provider (NP). The NP is typically an iOS device acting as a server. For terminology and up-to-date specs, see http://developer.apple.com.
+
+The term "notification" is used in two different meanings:
+
+An iOS notification is the data received from the Notification Provider.
+A GATTC notification is a way to transfer data with Bluetooth Smart. In this module, we receive iOS notifications using GATTC notifications. We use the full term (iOS notification or GATTC notification) where required to avoid confusion.
+Upon initializing the module, you must add the different iOS notification attributes you would like to receive for iOS notifications. ble_ancs_c_attr_add.
+
+Once a connection is established with a central device, the module does a service discovery to discover the ANVS server handles. If this succeeds (BLE_ANCS_C_EVT_DISCOVERY_COMPLETE) The handles for the CTS server are part of the ble_ancs_c_evt_t structure and must be assigned to a ANCS_C instance using the ble_ancs_c_handles_assign function. For more information about service discovery, see the ble_discovery module documentation Database Discovery Module.
+
+The application can now subscribe to iOS notifications using ble_ancs_c_notif_source_notif_enable. They arrive in the BLE_ANCS_C_EVT_NOTIF event. ble_ancs_c_request_attrs can be used to request attributes for the notifications. They arrive in the BLE_ANCS_C_EVT_NOTIF_ATTRIBUTE event.
 
 ![ANCS](http://ww1.sinaimg.cn/large/6c1ebe8ely1g1xihnn9s1j20p00dhq2v.jpg)
 
