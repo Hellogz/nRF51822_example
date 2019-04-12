@@ -49,6 +49,7 @@
 - 将 deviceid 替换图中的 id ，mac 填写蓝牙设备的 MAC 地址。
 - 服务器会返回授权结果，查看 errcode 和 errmsg 。errcode = 0 和 errmsg = "OK" 时表示授权成功了。
 - **利用 deviceid 更新设备属性时，ble_simple_protocol 填 0，op_type 填 1。**
+- 返回结果的 **device_type** 为公众号的原始 id。
 
 ![11](./photo/11.png)
 - 字段含义：
