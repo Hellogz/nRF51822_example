@@ -38,6 +38,7 @@
 ![9](./photo/9.png)
 
 #### 为设备生成一个唯一ID（deviceid）及二维码（通过微信扫描即可添加设备）
+- **每生成一次占用一个配额**。
 - 将 access_token 和 product_id 替换图中的 Key 对应的 Value 。
 - 服务器会返回一个 **qrticket** （二维码网站）和 **deviceid**。
 
@@ -47,6 +48,7 @@
 - 将 access_token 和 product_id 替换图中的 Key 对应的 Value 。
 - 将 deviceid 替换图中的 id ，mac 填写蓝牙设备的 MAC 地址。
 - 服务器会返回授权结果，查看 errcode 和 errmsg 。errcode = 0 和 errmsg = "OK" 时表示授权成功了。
+- **利用 deviceid 更新设备属性时，ble_simple_protocol 填 0，op_type 填 1。**
 
 ![11](./photo/11.png)
 - 字段含义：
