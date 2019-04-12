@@ -1,6 +1,9 @@
 ## BLE 设备连接微信
 
 ### 微信平台
+
+#### [支持微信运动接入的设备生产与微信公众号相关交互的说明](https://iot.weixin.qq.com/wiki/new/index.html?page=3-4-6)
+#### [接入微信硬件平台流程](https://iot.weixin.qq.com/wiki/new/index.html?page=3-1)
 #### 微信公众平台接口测试帐号申请
 - 使用微信扫一扫登陆[微信公众平台](https://mp.weixin.qq.com/debug/cgi-bin/sandbox?t=sandbox/login)。
 
